@@ -29,8 +29,10 @@ completo aunque solo una parte esté activa.
 - `frontend/` — React + Vite. Sirve las vistas y llama al backend.
   - `src/data/plan.js` — nombres y estado enabled/disabled de los Ejes e
     Iniciativas 6.x. Editar aquí para habilitar otro eje/iniciativa.
-- `backend/` — Node.js + Express. Expone la API que en el futuro leerá datos
-  reales desde el Excel de SharePoint.
+- `backend/` — Node.js + Express. Lee `panel_iniciativas.xlsx` (una hoja por
+  iniciativa 6.x) y expone `GET /api/iniciativas/:num` con los datos ya
+  procesados (árbol línea → iniciativa → actividad/hito, con avance calculado
+  por fechas). Ver `## Origen de datos` más abajo.
 
 ## Cómo correr en local
 
@@ -99,29 +101,80 @@ referencia:
 | `RoadmapTab` / `Roadmap` | Roadmap trimestral | Vista Roadmap |
 | `HeatmapTab` / `Heatmap` | Mapa de calor de carga de trabajo | Vista Mapa de Color |
 
-**Fuente de datos para esta fase:** una copia fija de
-`panel_iniciativas.xlsx` dentro de este repo (leída una vez al iniciar el
-backend), sin sincronización automática con SharePoint todavía — eso llega
-en la Versión 3.
+**Fuente de datos:** ver `## Origen de datos` más abajo — el backend lee
+`panel_iniciativas.xlsx` (una hoja por iniciativa 6.x) y ya no usa datos
+"en duro".
 
-### Versión 3 — Conectar con SharePoint
-1. **Backend lee SharePoint** vía Microsoft Graph API:
-   `panel_iniciativas.xlsx` (sitio `uc365_SIAI`), refrescando cada ~15 min.
-   - Columnas del Excel: `Proyecto | Subproyecto | Tipo (Hito/Actividad) |
-     Nombre | Responsable | Fecha inicio | Fecha límite`.
-   - Personas se deriva de la columna `Responsable`.
-   - Indicadores se calculan sobre los datos de proyectos (ej. cantidad de
-     proyectos, hitos por estado, etc.) — la fórmula exacta de cada KPI queda
-     por definir.
-2. **Login institucional** con cuenta Microsoft/UC (Entra ID), para que solo
-   gente de la organización pueda ver la app. Requiere registrar una
-   aplicación en el Entra ID de la universidad — puede necesitar aprobación
-   de TI.
-3. **Backend en producción** en un servicio como Render (necesario para que
-   la sincronización con SharePoint corra 24/7).
+### Versión 3 — Login institucional (pendiente)
+Login con cuenta Microsoft/UC (Entra ID), para que solo gente de la
+organización pueda ver la app. Requiere registrar una aplicación en el
+Entra ID de la universidad — puede necesitar aprobación de TI. Se descartó
+conectar el backend directamente a Microsoft Graph API para leer el Excel
+(ver sección de abajo) porque ese registro de app resultó más complejo de
+lo necesario para lo que se necesitaba lograr.
 
 ### Versiones futuras
 Iteraciones adicionales por definir a medida que la app avance.
+
+## Origen de datos
+
+En vez de conectar el backend directamente a Microsoft Graph API (requiere
+registrar una app en Entra ID de la UC, con aprobación de TI), se optó por
+una vía más simple que no depende de TI:
+
+```
+Equipo edita panel_iniciativas.xlsx en SharePoint/OneDrive (como siempre)
+  → Power Automate detecta el cambio ("Cuando se modifica un archivo")
+  → POST a /api/webhook/refresh (con secreto compartido)
+  → backend descarga el Excel (vía link "Cualquiera con el vínculo")
+    y recalcula los datos en memoria
+  → GET /api/iniciativas/:num sirve los datos ya frescos al frontend
+```
+
+Además del webhook, el backend reintenta la descarga cada 3 horas como
+respaldo silencioso por si algún aviso de Power Automate se pierde.
+
+**Estructura del Excel:** una hoja por iniciativa (`6.0`, `6.1`, `6.2`, ...
+el número es referencial y puede cambiar). Cada hoja tiene las columnas
+`Proyecto | Subproyecto | Tipo (Hito/Actividad) | Nombre | Responsable |
+Fecha inicio | Fecha limite`. El backend agrupa por Proyecto → Subproyecto
+→ fila, y calcula el avance (0-100%) comparando Fecha inicio/Fecha límite
+contra la fecha de hoy (no hay columna de avance manual). Ver
+`backend/src/parseWorkbook.js`.
+
+Por ahora solo la hoja `6.2` (única iniciativa habilitada, ver
+`frontend/src/data/plan.js`) se conecta a las vistas Listado de Hitos y
+Distribución por Responsable.
+
+**Para dejar esto funcionando en producción, faltan 4 pasos manuales**
+(no se pueden automatizar desde acá):
+
+1. **Generar el link de descarga en SharePoint**: click derecho sobre
+   `panel_iniciativas.xlsx` → Compartir → cambiar a "Cualquiera con el
+   vínculo" → Copiar vínculo, y agregarle `?download=1` al final para que
+   descargue el archivo en vez de abrir el visor web.
+2. **Desplegar el backend en Render**: este repo ya trae `render.yaml`.
+   En [render.com](https://render.com) → New → Blueprint → conectar este
+   repositorio de GitHub → Render detecta `render.yaml` → completar las
+   variables `SHAREPOINT_XLSX_URL` (el link del paso 1) y `REFRESH_SECRET`
+   (cualquier texto random que seas tú quien lo define) → Deploy.
+   Una vez desplegado, copiar la URL pública que asigna Render (algo como
+   `https://panel-gestion-proyectos-backend.onrender.com`).
+3. **Conectar el frontend publicado a ese backend**: en GitHub →
+   Settings → Secrets and variables → Actions → pestaña "Variables" →
+   crear una variable llamada `VITE_API_URL` con la URL de Render del
+   paso 2. El workflow de deploy (`.github/workflows/deploy-pages.yml`)
+   ya está preparado para usarla.
+4. **Crear el flujo en Power Automate**: en
+   [make.powerautomate.com](https://make.powerautomate.com) → crear un
+   flujo automatizado → disparador "Cuando se modifica un archivo"
+   (SharePoint, apuntando a `panel_iniciativas.xlsx`) → acción HTTP
+   (POST a `https://<url-de-render>/api/webhook/refresh`, header
+   `x-refresh-secret` con el mismo valor del paso 2).
+
+Mientras estos 4 pasos no estén hechos, el backend sigue funcionando en
+local usando `backend/data/panel_iniciativas.xlsx` como respaldo (ver
+`backend/.env.example`).
 
 ## Nota sobre otro proyecto en este equipo
 
