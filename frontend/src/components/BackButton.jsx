@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
 
-export default function BackButton() {
+export default function BackButton({ to = "/", label = "← Volver al menú" }) {
   return (
-    <Link to="/" className="back-button">
-      ← Volver al menú
+    <Link to={to} className="back-button">
+      {label}
     </Link>
   );
 }

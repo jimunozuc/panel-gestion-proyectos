@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import BackButton from "../components/BackButton.jsx";
 
 const OPTIONS = [
   { to: "/proyectos", label: "Proyectos" },
@@ -9,6 +10,7 @@ const OPTIONS = [
 export default function Menu() {
   return (
     <main className="page menu-page">
+      <BackButton to="/ejes/inteligencia-digital" label="← Volver a Inteligencia digital" />
       <h1>Panel de Gestión</h1>
       <div className="menu-buttons">
         {OPTIONS.map((opt) => (

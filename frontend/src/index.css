@@ -1,3 +1,11 @@
+:root {
+  --uc-azul: #0176de;
+  --uc-navy: #03122e;
+  --uc-navy2: #042259;
+  --uc-azul-d: #0354b1;
+  --uc-amarillo: #fec60d;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -86,4 +94,59 @@ body {
   text-align: center;
   color: #94a3b8;
   font-style: italic;
+}
+
+.plan-page {
+  background: var(--uc-navy);
+  color: white;
+  min-height: 100vh;
+}
+
+.plan-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.75rem;
+  color: var(--uc-cel, #66b3ff);
+  margin: 0 0 0.5rem;
+}
+
+.plan-page h1 {
+  margin-top: 0;
+  margin-bottom: 2rem;
+}
+
+.plan-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 420px;
+}
+
+.plan-button {
+  display: block;
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  text-align: left;
+  background: var(--uc-azul);
+  color: white;
+  border-left: 4px solid var(--uc-amarillo);
+  transition: background 0.15s ease;
+}
+
+.plan-button:hover {
+  background: var(--uc-azul-d);
+}
+
+.plan-button--disabled {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
+  border-left: 4px solid rgba(255, 255, 255, 0.15);
+  cursor: not-allowed;
+}
+
+.plan-page .back-button {
+  color: var(--uc-amarillo);
 }
