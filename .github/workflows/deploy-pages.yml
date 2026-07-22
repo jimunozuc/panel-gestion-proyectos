@@ -37,20 +37,24 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install deps (main)
+        working-directory: main-src/frontend
+        run: npm ci
+
       - name: Build main → /
         working-directory: main-src/frontend
-        run: |
-          npm ci
-          npm run build
+        run: npm run build
         env:
           NODE_ENV: production
           BASE_PATH: /panel-gestion-proyectos/
 
+      - name: Install deps (develop)
+        working-directory: dev-src/frontend
+        run: npm ci
+
       - name: Build develop → /dev/
         working-directory: dev-src/frontend
-        run: |
-          npm ci
-          npm run build
+        run: npm run build
         env:
           NODE_ENV: production
           BASE_PATH: /panel-gestion-proyectos/dev/
