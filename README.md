@@ -1,12 +1,27 @@
 # Panel de Gestión — Proyectos, Personas, Indicadores
 
-Aplicación web con frontend y backend separados. Menú principal con 3 botones
-(Proyectos, Personas, Indicadores), cada uno lleva a su propia vista con un
-botón para volver al menú.
+Aplicación web con frontend y backend separados, para la Dirección de IA ·
+VRID · UC.
+
+**Publicado en:** https://jimunozuc.github.io/panel-gestion-proyectos/
+
+## Navegación
+
+```
+Iniciativas (6 Ejes del Plan, solo "Inteligencia digital" habilitado)
+  → Inteligencia digital (6.0-6.5, solo "6.2 Desarrollo y despliegue" habilitada)
+    → Panel de Gestión (Menú: Proyectos | Personas | Indicadores)
+```
+
+Cada vista tiene su botón de volver al nivel anterior. Los ejes/iniciativas
+deshabilitados se muestran (gris, no clickeables) para representar el Plan
+completo aunque solo una parte esté activa.
 
 ## Estructura
 
 - `frontend/` — React + Vite. Sirve las vistas y llama al backend.
+  - `src/data/plan.js` — nombres y estado enabled/disabled de los Ejes e
+    Iniciativas 6.x. Editar aquí para habilitar otro eje/iniciativa.
 - `backend/` — Node.js + Express. Expone la API que en el futuro leerá datos
   reales desde el Excel de SharePoint.
 
@@ -34,8 +49,11 @@ npm run dev
 
 Abre `http://localhost:5173`.
 
-## Estado actual (Fase 1)
+## Estado actual
 
+- Navegación Iniciativas → Ejes → Panel de Gestión: **hecha**, con colores
+  institucionales UC (`--uc-azul:#0176DE --uc-navy:#03122E
+  --uc-amarillo:#FEC60D`).
 - Proyectos: página estática ("Proyectos" / "Estamos trabajando para Ud.").
 - Personas: página con foto de marcador de posición.
 - Indicadores: tabla `KPI | Descripción`, vacía — ya conectada al backend
@@ -46,27 +64,31 @@ Abre `http://localhost:5173`.
 
 ## Roadmap
 
-### Versión 2.1 — Publicar en GitHub Pages
-Desplegar el frontend actual (tal como está, con datos estáticos/vacíos) en
-GitHub Pages para que sea accesible por URL.
+### Versión 2.1 — Publicar en GitHub Pages ✅ hecho
+Deploy automático vía `.github/workflows/deploy-pages.yml` en cada push a
+`main` que toque `frontend/`.
 
-### Versión 2.2 — Probar nuevas funcionalidades
-Migrar, de a una pieza a la vez, funcionalidades del artefacto existente
-(`panel-de-iniciativas`) hacia esta app modular. El usuario decide cuándo
-empezar cada pieza (avisa con "AHORA"); nada de esto se construye por
-adelantado.
+### Versión 2.2 — Probar nuevas funcionalidades (en curso)
+Migrar, de a una pieza a la vez, funcionalidades de los artefactos existentes
+hacia esta app modular. **El usuario decide cuándo empezar cada pieza
+(avisa con "AHORA" + cuál); no se construye nada de esto por adelantado.**
 
-**Piezas disponibles para migrar** (ya identificadas en
-`panel-de-iniciativas/src/dashboard_template.html`):
+Hecho hasta ahora: la capa de navegación Iniciativas/Ejes (ver arriba).
 
-| Componente original | Qué hace | Destino sugerido en la app nueva |
+**Piezas pendientes de migrar**, identificadas en dos artefactos de
+referencia:
+- `/Users/usuario/Documents/panel-de-iniciativas/src/dashboard_template.html`
+- `/Users/usuario/Downloads/ucbots_dashboard.html` (versión más nueva/distinta,
+  de donde salieron los colores UC)
+
+| Componente | Qué hace | Destino sugerido |
 |---|---|---|
-| `ResumenTab` | Tarjetas de KPIs / resumen general | Vista Indicadores |
-| `GanttTab` | Carta Gantt de tareas por proyecto | Vista Proyectos |
-| `HitosTab` | Listado de hitos | Vista Proyectos |
-| `EquipoTab` | Distribución de tareas por responsable | Vista Personas |
-| `RoadmapTab` | Roadmap trimestral | Vista Proyectos |
-| `HeatmapTab` | Mapa de calor de carga de trabajo | Vista Personas o Indicadores |
+| `ResumenTab` / `Resumen` | Tarjetas de KPIs / resumen general | Vista Indicadores |
+| `GanttTab` / `Gantt` | Carta Gantt de tareas por proyecto | Vista Proyectos |
+| `HitosTab` / `Hitos` | Listado de hitos | Vista Proyectos |
+| `EquipoTab` / `Equipo` | Distribución de tareas por responsable | Vista Personas |
+| `RoadmapTab` / `Roadmap` | Roadmap trimestral | Vista Proyectos |
+| `HeatmapTab` / `Heatmap` | Mapa de calor de carga de trabajo | Vista Personas o Indicadores |
 
 **Fuente de datos para esta fase:** una copia fija de
 `panel_iniciativas.xlsx` dentro de este repo (leída una vez al iniciar el
