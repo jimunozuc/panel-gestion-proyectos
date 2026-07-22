@@ -3,7 +3,12 @@
 Aplicación web con frontend y backend separados, para la Dirección de IA ·
 VRID · UC.
 
-**Publicado en:** https://jimunozuc.github.io/panel-gestion-proyectos/
+**Producción** (rama `main`): https://jimunozuc.github.io/panel-gestion-proyectos/
+**Desarrollo** (rama `develop`): https://jimunozuc.github.io/panel-gestion-proyectos/dev/
+
+Cada rama se despliega a su propia ruta (ver
+`.github/workflows/deploy-pages.yml`), así que probar cosas en `develop` no
+pisa la versión publicada en `main`.
 
 ## Navegación
 

@@ -2,7 +2,7 @@ name: Deploy frontend to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - "frontend/**"
       - ".github/workflows/deploy-pages.yml"
@@ -21,19 +21,49 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout main (producción)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-src
+
+      - name: Checkout develop (desarrollo)
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          path: dev-src
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm ci
-        working-directory: frontend
-      - run: npm run build
-        working-directory: frontend
+
+      - name: Build main → /
+        working-directory: main-src/frontend
+        run: |
+          npm ci
+          npm run build
         env:
           NODE_ENV: production
+          BASE_PATH: /panel-gestion-proyectos/
+
+      - name: Build develop → /dev/
+        working-directory: dev-src/frontend
+        run: |
+          npm ci
+          npm run build
+        env:
+          NODE_ENV: production
+          BASE_PATH: /panel-gestion-proyectos/dev/
+
+      - name: Combinar sitios (producción en raíz, desarrollo en /dev/)
+        run: |
+          mkdir -p site/dev
+          cp -r main-src/frontend/dist/. site/
+          cp -r dev-src/frontend/dist/. site/dev/
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: frontend/dist
+          path: site
 
   deploy:
     needs: build
