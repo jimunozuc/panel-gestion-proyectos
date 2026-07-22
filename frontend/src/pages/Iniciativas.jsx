@@ -19,6 +19,9 @@ export default function Iniciativas() {
           )
         )}
       </div>
+      <Link to="/app-releases" className="app-releases-button">
+        App Releases
+      </Link>
     </main>
   );
 }

@@ -1,4 +1,4 @@
-# Panel de Gestión — Proyectos, Personas, Indicadores
+# Panel de Gestión de Proyectos
 
 Aplicación web con frontend y backend separados, para la Dirección de IA ·
 VRID · UC.
@@ -10,7 +10,9 @@ VRID · UC.
 ```
 Iniciativas (6 Ejes del Plan, solo "Inteligencia digital" habilitado)
   → Inteligencia digital (6.0-6.5, solo "6.2 Desarrollo y despliegue" habilitada)
-    → Panel de Gestión (Menú: Proyectos | Personas | Indicadores)
+    → Panel de Gestión (Menú: KPI | Carta Gantt | Listado de Hitos |
+      Distribución por Responsable | Roadmap | Mapa de Color | Glosario)
+  → App Releases (avances y versiones de la app)
 ```
 
 Cada vista tiene su botón de volver al nivel anterior. Los ejes/iniciativas
@@ -54,11 +56,13 @@ Abre `http://localhost:5173`.
 - Navegación Iniciativas → Ejes → Panel de Gestión: **hecha**, con colores
   institucionales UC (`--uc-azul:#0176DE --uc-navy:#03122E
   --uc-amarillo:#FEC60D`).
-- Proyectos: página estática ("Proyectos" / "Estamos trabajando para Ud.").
-- Personas: página con foto de marcador de posición.
-- Indicadores: tabla `KPI | Descripción`, vacía — ya conectada al backend
-  (`GET /api/indicadores`), pero el backend todavía devuelve `[]` porque aún
-  no lee el Excel real.
+- Panel de Gestión: 7 botones de prueba (KPI, Carta Gantt, Listado de Hitos,
+  Distribución por Responsable, Roadmap, Mapa de Color, Glosario). Cada uno
+  abre una página con una tabla `Nombre de la página | Descripción` — solo
+  para validar que la estructura de navegación y cada botón funcionan;
+  el contenido real se migra pieza por pieza (ver Versión 2.2 abajo).
+- App Releases: página con los avances/versiones de la app (ver
+  `frontend/src/data/releases.js` para agregar entradas nuevas).
 - Acceso: pensado para quedar restringido a cuentas de la organización, pero
   esa parte (login) todavía no está implementada.
 
@@ -83,12 +87,12 @@ referencia:
 
 | Componente | Qué hace | Destino sugerido |
 |---|---|---|
-| `ResumenTab` / `Resumen` | Tarjetas de KPIs / resumen general | Vista Indicadores |
-| `GanttTab` / `Gantt` | Carta Gantt de tareas por proyecto | Vista Proyectos |
-| `HitosTab` / `Hitos` | Listado de hitos | Vista Proyectos |
-| `EquipoTab` / `Equipo` | Distribución de tareas por responsable | Vista Personas |
-| `RoadmapTab` / `Roadmap` | Roadmap trimestral | Vista Proyectos |
-| `HeatmapTab` / `Heatmap` | Mapa de calor de carga de trabajo | Vista Personas o Indicadores |
+| `ResumenTab` / `Resumen` | Tarjetas de KPIs / resumen general | Vista KPI |
+| `GanttTab` / `Gantt` | Carta Gantt de tareas por proyecto | Vista Carta Gantt |
+| `HitosTab` / `Hitos` | Listado de hitos | Vista Listado de Hitos |
+| `EquipoTab` / `Equipo` | Distribución de tareas por responsable | Vista Distribución por Responsable |
+| `RoadmapTab` / `Roadmap` | Roadmap trimestral | Vista Roadmap |
+| `HeatmapTab` / `Heatmap` | Mapa de calor de carga de trabajo | Vista Mapa de Color |
 
 **Fuente de datos para esta fase:** una copia fija de
 `panel_iniciativas.xlsx` dentro de este repo (leída una vez al iniciar el

@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
-  <rect width="320" height="320" fill="#e2e8f0" rx="16"/>
-  <circle cx="160" cy="120" r="56" fill="#94a3b8"/>
-  <path d="M60 280c0-55 45-100 100-100s100 45 100 100" fill="#94a3b8"/>
-  <text x="160" y="305" font-family="sans-serif" font-size="14" fill="#64748b" text-anchor="middle">Foto próximamente</text>
-</svg>
