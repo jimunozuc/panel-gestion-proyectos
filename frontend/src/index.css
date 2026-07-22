@@ -1,0 +1,89 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 1.5rem;
+}
+
+.menu-page h1 {
+  margin-bottom: 2rem;
+}
+
+.menu-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.menu-button {
+  padding: 1.25rem 2.5rem;
+  background: #2563eb;
+  color: white;
+  text-decoration: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+
+.menu-button:hover {
+  background: #1d4ed8;
+}
+
+.back-button {
+  align-self: flex-start;
+  margin-bottom: 2rem;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.back-button:hover {
+  text-decoration: underline;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: #475569;
+}
+
+.personas-photo {
+  max-width: 320px;
+  border-radius: 16px;
+}
+
+.indicadores-table {
+  width: 100%;
+  max-width: 600px;
+  border-collapse: collapse;
+}
+
+.indicadores-table th,
+.indicadores-table td {
+  border: 1px solid #cbd5e1;
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
+.indicadores-table th {
+  background: #e2e8f0;
+}
+
+.empty-row {
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+}
