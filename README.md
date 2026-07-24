@@ -121,22 +121,30 @@ Iteraciones adicionales por definir a medida que la app avance.
 Se descartó conectar el backend directamente a Microsoft Graph API o a un
 link de SharePoint: el tenant de la UC exige sesión de Microsoft incluso
 para links marcados como "Cualquiera con el vínculo" (probado y confirmado
-— devuelve 403). En su lugar, es **Power Automate quien empuja el archivo**
-al backend, ya que corre autenticado con tu propia cuenta UC:
+— devuelve 403). También se descartó Power Automate como intermediario: el
+paso que hace el POST HTTP requiere licencia Premium, y ni la prueba
+gratuita de 90 días ni Make.com (mismo problema de consentimiento a apps de
+terceros en el tenant) resultaban una solución permanente. En su lugar, un
+**script local corre en la máquina del usuario**, vigilando la copia del
+Excel ya sincronizada por OneDrive:
 
 ```
-Equipo edita panel_iniciativas.xlsx en SharePoint/OneDrive (como siempre)
-  → Power Automate detecta el cambio ("Cuando se modifica un archivo")
-  → Power Automate obtiene el contenido del archivo (ya autenticado)
+Equipo edita panel_iniciativas.xlsx en SharePoint (como siempre)
+  → OneDrive sincroniza el cambio a la copia local en este Mac
+  → scripts/watch-and-push.mjs detecta el cambio (fs.watch + debounce)
+    y también reenvía cada 20 min como respaldo (por si el watch se pierde
+    un evento, ej. el Mac estaba dormido)
   → POST a /api/webhook/refresh con el archivo en el body (+ secreto compartido)
   → backend recalcula los datos en memoria
   → GET /api/iniciativas/:num sirve los datos ya frescos al frontend
 ```
 
-El backend nunca descarga nada por su cuenta — solo recibe lo que Power
-Automate le envía. Por eso conviene un segundo flujo de respaldo (recurrencia
-cada varias horas) que reenvíe el archivo aunque no haya habido cambios,
-por si algún aviso se pierde.
+El backend nunca descarga nada por su cuenta — solo recibe lo que le
+envían. El script corre como agente de `launchd`
+(`~/Library/LaunchAgents/com.panelgestion.excelwatcher.plist`, fuera del
+repo) y arranca solo al iniciar sesión en el Mac — por lo que los datos
+solo se actualizan mientras esa máquina esté encendida y con OneDrive
+sincronizando.
 
 **Estructura del Excel:** una hoja por iniciativa (`6.0`, `6.1`, `6.2`, ...
 el número es referencial y puede cambiar). Cada hoja tiene las columnas
@@ -151,7 +159,7 @@ Por ahora solo la hoja `6.2` (única iniciativa habilitada, ver
 Distribución por Responsable.
 
 Mientras el backend no reciba ningún archivo (recién desplegado, antes del
-primer aviso de Power Automate), sirve `backend/data/panel_iniciativas.xlsx`
+primer push del script local), sirve `backend/data/panel_iniciativas.xlsx`
 como respaldo local.
 
 ### Pasos para dejar esto funcionando en producción
@@ -184,36 +192,28 @@ de Render del paso 1 (Settings → Secrets and variables → Actions →
 pestaña "Variables" → "New repository variable"). Si prefieres, pásame la
 URL de Render cuando la tengas y lo hago yo directamente con `gh`.
 
-**3. Crear los flujos en Power Automate**
+**3. Instalar el watcher local**
 
-En [make.powerautomate.com](https://make.powerautomate.com), con tu cuenta
-UC:
+1. Sincroniza a tu Mac la carpeta de SharePoint donde vive
+   `panel_iniciativas.xlsx` (OneDrive → sitio `uc365_SIAI` → biblioteca
+   "Documentos" → carpeta "0. Prueba_gestión de proyectos" → botón
+   "Sincronizar"). Queda bajo
+   `~/Library/CloudStorage/OneDrive-...`.
+2. Copia `scripts/.env.example` a `scripts/.env` (este archivo está en
+   `.gitignore`, nunca se sube) y completa `EXCEL_FILE_PATH` con la ruta
+   real de la copia local, `BACKEND_URL` con la URL de Render, y
+   `REFRESH_SECRET` con el mismo valor cargado en Render.
+3. Prueba manualmente: `node --env-file=scripts/.env
+   scripts/watch-and-push.mjs` — debería loguear "vigilando ..." y
+   "enviado (startup)".
+4. Para que corra solo al iniciar sesión, instala un agente de `launchd`
+   apuntando a `scripts/watch-and-push.mjs` con esas mismas variables de
+   entorno (ver `~/Library/LaunchAgents/com.panelgestion.excelwatcher.plist`
+   en la máquina ya configurada como referencia). Carga con `launchctl load
+   ~/Library/LaunchAgents/com.panelgestion.excelwatcher.plist`.
 
-*Flujo 1 — Reactivo (cuando se guarda un cambio):*
-1. "Crear" → "Flujo de nube automatizado" → nómbralo, por ejemplo,
-   "Actualizar panel al modificar Excel".
-2. Disparador: busca **"Cuando se crea o modifica un archivo (solo
-   propiedades)"** (conector SharePoint). Configura: dirección del sitio
-   `https://uccl0.sharepoint.com/sites/uc365_SIAI`, biblioteca "Documentos",
-   carpeta `0. Prueba_gestión de proyectos`.
-3. Acción nueva: **"Obtener contenido del archivo"** (SharePoint) →
-   dirección del sitio igual que arriba, Id del archivo = el campo
-   dinámico "Id" que entrega el disparador.
-4. Acción nueva: **"HTTP"** → Método `POST`, URI
-   `https://<url-de-render>/api/webhook/refresh`, Headers:
-   `x-refresh-secret` = el secreto del paso 1, `Content-Type` =
-   `application/octet-stream`. Body = el campo dinámico "Contenido del
-   archivo" de la acción anterior.
-5. Guardar.
-
-   *Nota:* la acción "HTTP" es un conector premium en algunas licencias
-   de Power Automate — si aparece bloqueada, avísame y vemos otra vía.
-
-*Flujo 2 — Respaldo cada 6 horas (por si se pierde un aviso):*
-Igual al Flujo 1, pero el disparador es **"Recurrencia"** (intervalo 6,
-frecuencia horas) en vez de "Cuando se modifica un archivo" — y en
-"Obtener contenido del archivo" apuntas directo al archivo (sin Id
-dinámico, ya que no hay disparador de por medio).
+El script reacciona al cambio del archivo (con un debounce de 5s) y además
+reenvía cada `BACKUP_INTERVAL_MINUTES` (20 por defecto) como respaldo.
 
 ## Nota sobre otro proyecto en este equipo
 
