@@ -93,11 +93,9 @@ Backend en `http://localhost:3001`, frontend en `http://localhost:8080`. Cada
 - Navegación Iniciativas → Ejes → Panel de Gestión: **hecha**, con colores
   institucionales UC (`--uc-azul:#0176DE --uc-navy:#03122E
   --uc-amarillo:#FEC60D`).
-- Panel de Gestión: 7 botones de prueba (KPI, Carta Gantt, Listado de Hitos,
-  Distribución por Responsable, Roadmap, Mapa de Color, Glosario). Cada uno
-  abre una página con una tabla `Nombre de la página | Descripción` — solo
-  para validar que la estructura de navegación y cada botón funcionan;
-  el contenido real se migra pieza por pieza (ver Versión 2.2 abajo).
+- Panel de Gestión: 7 vistas, todas migradas con datos reales (KPI, Carta
+  Gantt, Listado de Hitos, Distribución por Responsable, Roadmap, Mapa de
+  Color, Glosario). Ver Versión 2.2 abajo.
 - App Releases: página con los avances/versiones de la app (ver
   `frontend/src/data/releases.js` para agregar entradas nuevas).
 - Acceso: pensado para quedar restringido a cuentas de la organización, pero
@@ -109,31 +107,27 @@ Backend en `http://localhost:3001`, frontend en `http://localhost:8080`. Cada
 Deploy automático vía `.github/workflows/deploy-pages.yml` en cada push a
 `main` que toque `frontend/`.
 
-### Versión 2.2 — Probar nuevas funcionalidades (en curso)
+### Versión 2.2 — Probar nuevas funcionalidades ✅ hecho
 Migrar, de a una pieza a la vez, funcionalidades de los artefactos existentes
-hacia esta app modular. **El usuario decide cuándo empezar cada pieza
-(avisa con "AHORA" + cuál); no se construye nada de esto por adelantado.**
+hacia esta app modular. Referencia usada:
+`/Users/usuario/Downloads/ucbots_dashboard.html` (de donde salieron los
+colores UC y la forma de los datos — `LINE_META`, `allNodes`, etc.).
 
-Hecho hasta ahora: la capa de navegación Iniciativas/Ejes (ver arriba).
+Las 7 vistas del Panel de Gestión están migradas con datos reales:
 
-**Piezas pendientes de migrar**, identificadas en dos artefactos de
-referencia:
-- `/Users/usuario/Documents/panel-de-iniciativas/src/dashboard_template.html`
-- `/Users/usuario/Downloads/ucbots_dashboard.html` (versión más nueva/distinta,
-  de donde salieron los colores UC)
+| Vista | Contenido |
+|---|---|
+| KPI | Tarjetas de avance global, iniciativas, hitos, avance por línea, carga por responsable, próximos hitos |
+| Carta Gantt | Barras por línea/iniciativa/actividad, filtros por línea y responsable |
+| Listado de Hitos | Hitos agrupados por mes con fecha/avance/estado |
+| Distribución por Responsable | Iniciativas/actividades asignadas por persona |
+| Roadmap | Vista trimestral con densidad de actividades e hitos clickeables |
+| Mapa de Color | Intensidad de actividades por iniciativa/mes, con detalle al hacer clic |
+| Glosario | Tabla de explicación de los KPI usados en el panel |
 
-| Componente | Qué hace | Destino sugerido |
-|---|---|---|
-| `ResumenTab` / `Resumen` | Tarjetas de KPIs / resumen general | Vista KPI |
-| `GanttTab` / `Gantt` | Carta Gantt de tareas por proyecto | Vista Carta Gantt |
-| `HitosTab` / `Hitos` | Listado de hitos | Vista Listado de Hitos |
-| `EquipoTab` / `Equipo` | Distribución de tareas por responsable | Vista Distribución por Responsable |
-| `RoadmapTab` / `Roadmap` | Roadmap trimestral | Vista Roadmap |
-| `HeatmapTab` / `Heatmap` | Mapa de calor de carga de trabajo | Vista Mapa de Color |
-
-**Fuente de datos:** ver `## Origen de datos` más abajo — el backend lee
-`panel_iniciativas.xlsx` (una hoja por iniciativa 6.x) y ya no usa datos
-"en duro".
+**Fuente de datos:** ver `## Origen de datos` más abajo — el backend recibe
+el Excel real vía el watcher local y ya no usa datos "en duro" salvo como
+respaldo mientras no llega el primer push.
 
 ### Versión 3 — Login institucional (pendiente)
 Login con cuenta Microsoft/UC (Entra ID), para que solo gente de la
