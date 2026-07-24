@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import BackButton from "../components/BackButton.jsx";
 import { useIniciativaData } from "../utils/useIniciativaData.js";
 import {
   allNodes,
@@ -27,10 +26,7 @@ export default function DistribucionResponsable() {
   const nodes = useMemo(() => (data ? allNodes(data.tree) : []), [data]);
 
   return (
-    <main className="page responsable-page">
-      <BackButton to="/panel-gestion" label="← Volver a Panel de Gestión" />
-      <h1>Distribución por Responsable</h1>
-
+    <div className="vista responsable-page">
       {loading && <p className="subtitle">Cargando datos...</p>}
       {error && <p className="subtitle">No se pudo cargar el archivo: {error}</p>}
 
@@ -133,6 +129,6 @@ export default function DistribucionResponsable() {
           </div>
         </>
       )}
-    </main>
+    </div>
   );
 }

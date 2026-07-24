@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import BackButton from "../components/BackButton.jsx";
 import { useIniciativaData } from "../utils/useIniciativaData.js";
 import { buildMonthGrid, fmtDate, initials, lineMeta, personColor, statusOf, STATUS_META } from "../utils/dashboard.js";
 
@@ -79,10 +78,7 @@ export default function Roadmap() {
   const totalWidth = LABEL_WIDTH + COL_WIDTH * grid.months.length;
 
   return (
-    <main className="page roadmap-page">
-      <BackButton to="/panel-gestion" label="← Volver a Panel de Gestión" />
-      <h1>Roadmap</h1>
-
+    <div className="vista roadmap-page">
       {loading && <p className="subtitle">Cargando datos...</p>}
       {error && <p className="subtitle">No se pudo cargar el archivo: {error}</p>}
 
@@ -273,6 +269,6 @@ export default function Roadmap() {
           </div>
         </>
       )}
-    </main>
+    </div>
   );
 }

@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import BackButton from "../components/BackButton.jsx";
 import { useIniciativaData } from "../utils/useIniciativaData.js";
 import { buildMonthGrid, lineMeta, monthLong } from "../utils/dashboard.js";
 
@@ -87,10 +86,7 @@ export default function MapaColor() {
   const gridWidth = LABEL_WIDTH + COL_WIDTH * grid.months.length + TOTAL_WIDTH;
 
   return (
-    <main className="page heatmap-page">
-      <BackButton to="/panel-gestion" label="← Volver a Panel de Gestión" />
-      <h1>Mapa de Color</h1>
-
+    <div className="vista heatmap-page">
       {loading && <p className="subtitle">Cargando datos...</p>}
       {error && <p className="subtitle">No se pudo cargar el archivo: {error}</p>}
 
@@ -319,6 +315,6 @@ export default function MapaColor() {
           </div>
         </>
       )}
-    </main>
+    </div>
   );
 }
