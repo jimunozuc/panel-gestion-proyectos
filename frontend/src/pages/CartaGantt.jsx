@@ -63,6 +63,7 @@ function GanttBar({ node, grid }) {
 export default function CartaGantt() {
   const { loading, error, data } = useIniciativaData(INICIATIVA);
   const [lineFilter, setLineFilter] = useState("todas");
+  const [personFilter, setPersonFilter] = useState("todos");
   const [closedLines, setClosedLines] = useState({});
   const [openInits, setOpenInits] = useState({});
 
@@ -73,8 +74,24 @@ export default function CartaGantt() {
 
   const groups = useMemo(() => {
     if (!data) return [];
-    return data.tree.filter((g) => lineFilter === "todas" || g.nombre === lineFilter);
-  }, [data, lineFilter]);
+    return data.tree
+      .filter((g) => lineFilter === "todas" || g.nombre === lineFilter)
+      .map((g) => {
+        const initiatives = g.initiatives
+          .map((init) => ({
+            init,
+            acts: init.activities.filter(
+              (a) => personFilter === "todos" || a.responsable === personFilter
+            ),
+          }))
+          .filter(
+            ({ init, acts }) =>
+              personFilter === "todos" || init.responsable === personFilter || acts.length > 0
+          );
+        return { g, initiatives };
+      })
+      .filter(({ initiatives }) => initiatives.length > 0);
+  }, [data, lineFilter, personFilter]);
 
   const barsWidth = COL_WIDTH * grid.months.length;
 
@@ -104,6 +121,17 @@ export default function CartaGantt() {
                 ))}
               </select>
             </label>
+            <label className="gantt-filter-label">
+              Responsable:{" "}
+              <select value={personFilter} onChange={(e) => setPersonFilter(e.target.value)}>
+                <option value="todos">Todos</option>
+                {data.team.map((person) => (
+                  <option key={person} value={person}>
+                    {person}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className="gantt-legend">
               <span>
                 <span className="gantt-legend-swatch" style={{ background: "var(--uc-azul)" }} /> En curso
@@ -121,7 +149,7 @@ export default function CartaGantt() {
           </div>
 
           {groups.length === 0 ? (
-            <p className="subtitle">No hay datos para esta línea.</p>
+            <p className="subtitle">No hay datos para este filtro.</p>
           ) : (
             <div className="gantt-scroll">
               <div className="gantt-table" style={{ minWidth: LABEL_WIDTH + barsWidth }}>
@@ -136,7 +164,7 @@ export default function CartaGantt() {
                   ))}
                 </div>
 
-                {groups.map((g) => {
+                {groups.map(({ g, initiatives }) => {
                   const meta = lineMeta(g.nombre);
                   const open = closedLines[g.nombre] !== true;
                   return (
@@ -155,8 +183,8 @@ export default function CartaGantt() {
                       </button>
 
                       {open &&
-                        g.initiatives.map((i) => {
-                          const hasActs = i.activities && i.activities.length > 0;
+                        initiatives.map(({ init: i, acts }) => {
+                          const hasActs = acts.length > 0;
                           const initOpen = !!openInits[i.row];
                           return (
                             <div key={i.row}>
@@ -192,7 +220,7 @@ export default function CartaGantt() {
                               </div>
 
                               {initOpen &&
-                                i.activities.map((a) => (
+                                acts.map((a) => (
                                   <div key={a.row} className="gantt-row gantt-row--act">
                                     <div
                                       className="gantt-label-cell gantt-label-cell--act"

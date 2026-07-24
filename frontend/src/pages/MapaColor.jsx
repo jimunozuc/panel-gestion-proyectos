@@ -106,6 +106,7 @@ export default function MapaColor() {
 
           <div className="heatmap-layout">
             <div className="heatmap-table-wrap">
+              <div className="heatmap-scroll">
               <div className="heatmap-table" style={{ minWidth: gridWidth }}>
                 <div className="heatmap-row heatmap-row--header">
                   <div className="heatmap-label-cell heatmap-label-cell--header" style={{ width: LABEL_WIDTH }}>
@@ -192,6 +193,7 @@ export default function MapaColor() {
                     ))}
                   </div>
                 ))}
+              </div>
               </div>
 
               <div className="heatmap-legend">
