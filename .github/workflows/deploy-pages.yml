@@ -47,6 +47,7 @@ jobs:
         env:
           NODE_ENV: production
           BASE_PATH: /panel-gestion-proyectos/
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
 
       - name: Install deps (develop)
         working-directory: dev-src/frontend
@@ -58,6 +59,7 @@ jobs:
         env:
           NODE_ENV: production
           BASE_PATH: /panel-gestion-proyectos/dev/
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
 
       - name: Combinar sitios (producción en raíz, desarrollo en /dev/)
         run: |

@@ -1,9 +1,3 @@
-import projectData from "../data/projectData.json";
-
-export const TEAM = projectData.team;
-export const MONTHS = projectData.months;
-export const TREE = projectData.tree;
-
 const MONTH_ABBR = [
   "Ene", "Feb", "Mar", "Abr", "May", "Jun",
   "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
@@ -45,8 +39,8 @@ export function statusOf(av) {
   return "pendiente";
 }
 
-export function personColor(name) {
-  const i = TEAM.indexOf(name);
+export function personColor(name, team) {
+  const i = team.indexOf(name);
   return i >= 0 ? PERSON_COLORS[i % PERSON_COLORS.length] : "#93A6B8";
 }
 
@@ -61,21 +55,21 @@ export function fmtDate(iso) {
   return `${d}/${m}/${y}`;
 }
 
-export function monthName(midx) {
-  const y = 2026 + Math.floor(midx / 12);
+export function monthName(midx, epochYear) {
+  const y = epochYear + Math.floor(midx / 12);
   const mo = ((midx % 12) + 12) % 12;
   return `${MONTH_ABBR[mo]} ${y}`;
 }
 
-export function allInitiatives() {
+export function allInitiatives(tree) {
   const r = [];
-  TREE.forEach((g) => g.initiatives.forEach((i) => r.push({ ...i, line: g.nombre })));
+  tree.forEach((g) => g.initiatives.forEach((i) => r.push({ ...i, line: g.nombre })));
   return r;
 }
 
-export function allNodes() {
+export function allNodes(tree) {
   const r = [];
-  TREE.forEach((g) =>
+  tree.forEach((g) =>
     g.initiatives.forEach((i) => {
       r.push({ ...i, line: g.nombre, kind: "init", responsable: i.responsable || "" });
       i.activities.forEach((a) =>
