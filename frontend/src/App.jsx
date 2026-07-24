@@ -1,8 +1,8 @@
-import { Routes, Route } from "react-router-dom";
-import Iniciativas from "./pages/Iniciativas.jsx";
+import { Navigate, Route, Routes } from "react-router-dom";
+import PanelLayout from "./layouts/PanelLayout.jsx";
+import Contexto from "./pages/Contexto.jsx";
 import EjeDetail from "./pages/EjeDetail.jsx";
-import Menu from "./pages/Menu.jsx";
-import PanelSubPage from "./pages/PanelSubPage.jsx";
+import ProyectoFicha from "./pages/ProyectoFicha.jsx";
 import ListadoHitos from "./pages/ListadoHitos.jsx";
 import DistribucionResponsable from "./pages/DistribucionResponsable.jsx";
 import CartaGantt from "./pages/CartaGantt.jsx";
@@ -15,17 +15,21 @@ import AppReleases from "./pages/AppReleases.jsx";
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Iniciativas />} />
-      <Route path="/ejes/:ejeId" element={<EjeDetail />} />
-      <Route path="/panel-gestion" element={<Menu />} />
-      <Route path="/panel-gestion/kpi" element={<Kpi />} />
-      <Route path="/panel-gestion/carta-gantt" element={<CartaGantt />} />
-      <Route path="/panel-gestion/mapa-color" element={<MapaColor />} />
-      <Route path="/panel-gestion/roadmap" element={<Roadmap />} />
-      <Route path="/panel-gestion/glosario" element={<Glosario />} />
-      <Route path="/panel-gestion/listado-hitos" element={<ListadoHitos />} />
-      <Route path="/panel-gestion/distribucion-responsable" element={<DistribucionResponsable />} />
-      <Route path="/panel-gestion/:slug" element={<PanelSubPage />} />
+      <Route element={<PanelLayout />}>
+        <Route path="/" element={<Navigate to="/contexto" replace />} />
+        <Route path="/contexto" element={<Contexto />} />
+        <Route path="/ejes/:ejeId" element={<EjeDetail />} />
+        <Route path="/panel-gestion" element={<ProyectoFicha />}>
+          <Route index element={<Navigate to="kpi" replace />} />
+          <Route path="kpi" element={<Kpi />} />
+          <Route path="carta-gantt" element={<CartaGantt />} />
+          <Route path="mapa-color" element={<MapaColor />} />
+          <Route path="roadmap" element={<Roadmap />} />
+          <Route path="glosario" element={<Glosario />} />
+          <Route path="listado-hitos" element={<ListadoHitos />} />
+          <Route path="distribucion-responsable" element={<DistribucionResponsable />} />
+        </Route>
+      </Route>
       <Route path="/app-releases" element={<AppReleases />} />
     </Routes>
   );

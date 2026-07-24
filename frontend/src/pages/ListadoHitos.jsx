@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import BackButton from "../components/BackButton.jsx";
 import { useIniciativaData } from "../utils/useIniciativaData.js";
 import {
   allNodes,
@@ -37,10 +36,7 @@ export default function ListadoHitos() {
   };
 
   return (
-    <main className="page hitos-page">
-      <BackButton to="/panel-gestion" label="← Volver a Panel de Gestión" />
-      <h1>Listado de Hitos</h1>
-
+    <div className="vista hitos-page">
       {loading && <p className="subtitle">Cargando datos...</p>}
       {error && <p className="subtitle">No se pudo cargar el archivo: {error}</p>}
 
@@ -93,6 +89,6 @@ export default function ListadoHitos() {
           </div>
         </>
       )}
-    </main>
+    </div>
   );
 }

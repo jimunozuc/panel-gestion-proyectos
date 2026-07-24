@@ -1,5 +1,3 @@
-import BackButton from "../components/BackButton.jsx";
-
 const KPIS = [
   {
     termino: "Avance global",
@@ -48,9 +46,7 @@ const KPIS = [
 
 export default function Glosario() {
   return (
-    <main className="page glosario-page">
-      <BackButton to="/panel-gestion" label="← Volver a Panel de Gestión" />
-      <h1>Glosario</h1>
+    <div className="vista glosario-page">
       <p className="subtitle">Explicación de los indicadores (KPI) usados en el Panel de Gestión.</p>
       <table className="indicadores-table">
         <thead>
@@ -68,6 +64,6 @@ export default function Glosario() {
           ))}
         </tbody>
       </table>
-    </main>
+    </div>
   );
 }

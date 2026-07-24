@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import BackButton from "../components/BackButton.jsx";
 import { useIniciativaData } from "../utils/useIniciativaData.js";
 import {
   buildMonthGrid,
@@ -96,10 +95,7 @@ export default function CartaGantt() {
   const barsWidth = COL_WIDTH * grid.months.length;
 
   return (
-    <main className="page gantt-page">
-      <BackButton to="/panel-gestion" label="← Volver a Panel de Gestión" />
-      <h1>Carta Gantt</h1>
-
+    <div className="vista gantt-page">
       {loading && <p className="subtitle">Cargando datos...</p>}
       {error && <p className="subtitle">No se pudo cargar el archivo: {error}</p>}
 
@@ -252,6 +248,6 @@ export default function CartaGantt() {
           )}
         </>
       )}
-    </main>
+    </div>
   );
 }

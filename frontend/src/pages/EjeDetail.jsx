@@ -1,34 +1,46 @@
-import { useParams, Link } from "react-router-dom";
-import BackButton from "../components/BackButton.jsx";
-import { EJES, INICIATIVAS_INTELIGENCIA_DIGITAL } from "../data/plan.js";
+import { Link, useParams } from "react-router-dom";
+import { OBJETIVOS, getIniciativas } from "../data/plan.js";
 
-const INICIATIVAS_POR_EJE = {
-  "inteligencia-digital": INICIATIVAS_INTELIGENCIA_DIGITAL,
-};
+function tituloSinPrefijo(label) {
+  return label.replace(/^\S+\s+/, "");
+}
 
 export default function EjeDetail() {
   const { ejeId } = useParams();
-  const eje = EJES.find((e) => e.id === ejeId);
-  const iniciativas = INICIATIVAS_POR_EJE[ejeId] || [];
+  const eje = OBJETIVOS.find((o) => o.id === ejeId);
+  const iniciativas = getIniciativas(ejeId);
+
+  if (iniciativas.length === 0) {
+    return (
+      <p className="subtitle">
+        Todavía no hay datos cargados para {eje ? eje.label : ejeId}.
+      </p>
+    );
+  }
 
   return (
-    <main className="page plan-page">
-      <BackButton to="/" />
-      <p className="plan-eyebrow">Eje del Plan</p>
-      <h1>{eje ? eje.label : ejeId}</h1>
-      <div className="plan-buttons">
-        {iniciativas.map((it) =>
-          it.enabled ? (
-            <Link key={it.id} to="/panel-gestion" className="plan-button">
-              {it.label}
-            </Link>
-          ) : (
-            <span key={it.id} className="plan-button plan-button--disabled">
-              {it.label}
-            </span>
-          )
-        )}
-      </div>
-    </main>
+    <div className="nivel-grid" style={{ "--card-color": eje?.color }}>
+      {iniciativas.map((it) => (
+        <div key={it.id} className={`nivel-card${it.enabled ? "" : " nivel-card--disabled"}`}>
+          <span className="nivel-card-num">{it.id}</span>
+          <h3 className="nivel-card-title">{tituloSinPrefijo(it.label)}</h3>
+          {it.descripcion && <p className="nivel-card-desc">{it.descripcion}</p>}
+          <div className="nivel-card-action">
+            {it.enabled && it.route ? (
+              <Link to={it.route} className="btn-continuar btn-continuar--sm">
+                Continuar
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  arrow_forward
+                </span>
+              </Link>
+            ) : (
+              <span className="btn-continuar--disabled" aria-disabled="true">
+                Próximamente
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

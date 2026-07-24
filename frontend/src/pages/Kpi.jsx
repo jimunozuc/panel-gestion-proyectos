@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import BackButton from "../components/BackButton.jsx";
 import { useIniciativaData } from "../utils/useIniciativaData.js";
 import {
   allInitiatives,
@@ -57,10 +56,7 @@ export default function Kpi() {
   );
 
   return (
-    <main className="page kpi-page">
-      <BackButton to="/panel-gestion" label="← Volver a Panel de Gestión" />
-      <h1>KPI</h1>
-
+    <div className="vista kpi-page">
       {loading && <p className="subtitle">Cargando datos...</p>}
       {error && <p className="subtitle">No se pudo cargar el archivo: {error}</p>}
 
@@ -195,6 +191,6 @@ export default function Kpi() {
           </div>
         </>
       )}
-    </main>
+    </div>
   );
 }
