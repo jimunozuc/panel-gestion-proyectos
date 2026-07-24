@@ -171,7 +171,7 @@ Excel ya sincronizada por OneDrive:
 Equipo edita panel_iniciativas.xlsx en SharePoint (como siempre)
   → OneDrive sincroniza el cambio a la copia local en este Mac
   → scripts/watch-and-push.mjs detecta el cambio (fs.watch + debounce)
-    y también reenvía cada 20 min como respaldo (por si el watch se pierde
+    y también reenvía cada 5 min como respaldo (por si el watch se pierde
     un evento, ej. el Mac estaba dormido)
   → POST a /api/webhook/refresh con el archivo en el body (+ secreto compartido)
   → backend recalcula los datos en memoria
@@ -252,7 +252,10 @@ URL de Render cuando la tengas y lo hago yo directamente con `gh`.
    ~/Library/LaunchAgents/com.panelgestion.excelwatcher.plist`.
 
 El script reacciona al cambio del archivo (con un debounce de 5s) y además
-reenvía cada `BACKUP_INTERVAL_MINUTES` (20 por defecto) como respaldo.
+reenvía cada `BACKUP_INTERVAL_MINUTES` (5 por defecto) como respaldo — el
+intervalo es corto a propósito: cada vez que Render reinicia el backend
+(redeploy, o el plan gratuito "durmiendo" tras inactividad) pierde el caché
+en memoria y sirve el respaldo local embebido hasta el próximo push.
 
 ## Nota sobre otro proyecto en este equipo
 
