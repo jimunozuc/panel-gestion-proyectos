@@ -7,7 +7,5 @@ services:
     buildCommand: npm install
     startCommand: npm start
     envVars:
-      - key: SHAREPOINT_XLSX_URL
-        sync: false
       - key: REFRESH_SECRET
         sync: false
