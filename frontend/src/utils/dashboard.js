@@ -61,6 +61,18 @@ export function monthName(midx, epochYear) {
   return `${MONTH_ABBR[mo]} ${y}`;
 }
 
+const MONTH_LONG = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
+export function monthLong(midx, epochYear) {
+  const y = epochYear + Math.floor(midx / 12);
+  const mo = ((midx % 12) + 12) % 12;
+  const name = MONTH_LONG[mo];
+  return `${name[0].toUpperCase()}${name.slice(1)} de ${y}`;
+}
+
 export function allInitiatives(tree) {
   const r = [];
   tree.forEach((g) => g.initiatives.forEach((i) => r.push({ ...i, line: g.nombre })));
