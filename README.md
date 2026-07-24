@@ -10,6 +10,21 @@ Cada rama se despliega a su propia ruta (ver
 `.github/workflows/deploy-pages.yml`), así que probar cosas en `develop` no
 pisa la versión publicada en `main`.
 
+## Arquitectura actual
+
+```mermaid
+flowchart LR
+    Equipo["Equipo UC edita el Gantt\nen SharePoint"] --> Sync["OneDrive sincroniza\nla copia local"]
+    Sync --> Watcher["scripts/watch-and-push.mjs\n(agente launchd en el Mac del usuario)"]
+    Watcher -->|"POST /api/webhook/refresh\n(x-refresh-secret)"| Backend["Backend Node/Express\n(Render)"]
+    Backend -->|"GET /api/iniciativas/:num"| Frontend["Frontend React\n(GitHub Pages)"]
+    Frontend --> Usuario["Usuario en el navegador"]
+```
+
+El backend nunca va a buscar el archivo por su cuenta: solo recibe lo que el
+watcher local le envía (push), y mientras tanto sirve un respaldo local
+embebido. Ver `## Origen de datos` más abajo para el detalle completo.
+
 ## Navegación
 
 ```
@@ -29,10 +44,14 @@ completo aunque solo una parte esté activa.
 - `frontend/` — React + Vite. Sirve las vistas y llama al backend.
   - `src/data/plan.js` — nombres y estado enabled/disabled de los Ejes e
     Iniciativas 6.x. Editar aquí para habilitar otro eje/iniciativa.
-- `backend/` — Node.js + Express. Lee `panel_iniciativas.xlsx` (una hoja por
-  iniciativa 6.x) y expone `GET /api/iniciativas/:num` con los datos ya
-  procesados (árbol línea → iniciativa → actividad/hito, con avance calculado
-  por fechas). Ver `## Origen de datos` más abajo.
+- `backend/` — Node.js + Express. Recibe el Excel real (Gantt de una sola
+  hoja, ver `## Origen de datos`) vía `POST /api/webhook/refresh` y expone
+  `GET /api/iniciativas/:num` con los datos ya procesados (árbol línea →
+  iniciativa → actividad/hito). `backend/src/parseWorkbook.js` soporta dos
+  formatos: el Gantt real (con `% avance` explícito) y un formato simple de
+  lista (usado por el archivo de ejemplo para desarrollo local).
+- `scripts/` — `watch-and-push.mjs`, el watcher local que reemplaza a Power
+  Automate (ver `## Origen de datos`).
 
 ## Cómo correr en local
 
@@ -57,6 +76,17 @@ npm run dev
 ```
 
 Abre `http://localhost:5173`.
+
+**Con Docker (alternativa a lo anterior):**
+
+```bash
+cp .env.example .env   # completa REFRESH_SECRET
+docker compose up --build
+```
+
+Backend en `http://localhost:3001`, frontend en `http://localhost:8080`. Cada
+`docker compose up --build` reconstruye las imágenes con el código actual —
+útil para instalar/correr todo con un solo comando sin instalar Node.js.
 
 ## Estado actual
 
@@ -115,6 +145,15 @@ lo necesario para lo que se necesitaba lograr.
 
 ### Versiones futuras
 Iteraciones adicionales por definir a medida que la app avance.
+
+**Microservicios (idea a futuro, sin definir todavía):** se planteó dividir
+el desarrollo en microservicios para escalarlo mejor. Hoy la app ya tiene una
+separación mínima (frontend / backend); antes de fragmentar más hace falta
+definir qué responsabilidad justificaría un servicio aparte (¿ingesta de
+datos separada del API? ¿un servicio por eje del Plan?) — no conviene
+dividir sin un límite de responsabilidad claro. Por ahora se avanzó solo con
+Docker (ver `## Cómo correr en local`) para que instalar/correr la app sea
+más simple, sin inventar servicios nuevos todavía.
 
 ## Origen de datos
 
