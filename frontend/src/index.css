@@ -740,3 +740,231 @@ body {
   border: 2px solid #fff;
   box-shadow: 0 0 0 1px #cbd5e1;
 }
+
+.kpi-page {
+  align-items: stretch;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.kpi-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.kpi-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+}
+
+.kpi-card-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.kpi-card-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  margin-top: 0.15rem;
+}
+
+.kpi-card-sub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 0.2rem;
+}
+
+.kpi-panels {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .kpi-panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kpi-panel {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.kpi-panel h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.kpi-panel-desc {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin: 0 0 1rem;
+}
+
+.kpi-line-list,
+.kpi-people-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.kpi-line-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.kpi-line-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.kpi-line-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.kpi-line-count {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.kpi-line-pct {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.kpi-bar-track {
+  height: 0.6rem;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.kpi-bar-track--thin {
+  height: 0.35rem;
+  background: #f1f5f9;
+  margin-top: 0.25rem;
+}
+
+.kpi-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.kpi-person-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.kpi-person-avatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 0.6rem;
+}
+
+.kpi-person-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.kpi-person-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpi-person-name {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kpi-person-count {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+}
+
+.kpi-footnote {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  margin: 0.75rem 0 0;
+}
+
+.kpi-panel--milestones {
+  margin-top: 1rem;
+}
+
+.kpi-milestone-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.kpi-milestone-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid #f1f5f9;
+}
+
+.kpi-milestone-row:first-child {
+  border-top: none;
+}
+
+.kpi-milestone-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+.kpi-milestone-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.kpi-milestone-name {
+  font-size: 0.85rem;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kpi-milestone-line {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 0.1rem;
+}
+
+.kpi-milestone-date {
+  font-size: 0.75rem;
+  color: #64748b;
+  white-space: nowrap;
+}
