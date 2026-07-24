@@ -2,6 +2,13 @@ import ExcelJS from "exceljs";
 
 const COLUMNS = ["proyecto", "subproyecto", "tipo", "nombre", "responsable", "inicio", "fin"];
 
+// El sheet "P6.1.3" (Gantt real, sin columna Responsable) representa hoy la
+// única iniciativa habilitada en el frontend ("6.2"). Ver README, sección
+// "Origen de datos".
+const SHEET_ALIASES = { "P6.1.3": "6.2" };
+const SKIP_SHEETS = new Set(["Listas"]);
+const GANTT_HEADERS = ["Nivel", "Tipo", "Etiqueta (solo si es hito)", "Nombre", "Inicio", "Fin", "% avance"];
+
 function toIsoDate(value) {
   if (value == null || value === "") return null;
   if (value instanceof Date) return value.toISOString().slice(0, 10);
@@ -27,6 +34,9 @@ function avg(nums) {
   return Math.round(nums.reduce((s, n) => s + n, 0) / nums.length);
 }
 
+// --- Formato simple: una fila por Proyecto | Subproyecto | Tipo | Nombre |
+// Responsable | Fecha inicio | Fecha limite (archivo de ejemplo / dev local) ---
+
 function sheetRows(worksheet) {
   const rows = [];
   worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
@@ -47,7 +57,7 @@ function sheetRows(worksheet) {
   return rows;
 }
 
-function buildTree(rows, today, nextRowId) {
+function buildSimpleTree(rows, today, nextRowId) {
   const proyectoOrder = [];
   const byProyecto = new Map();
   for (const r of rows) {
@@ -131,18 +141,95 @@ function buildTree(rows, today, nextRowId) {
   return tree;
 }
 
+function parseSimpleSheet(worksheet, today) {
+  const rows = sheetRows(worksheet);
+  let counter = 0;
+  const nextRowId = () => ++counter;
+  const tree = buildSimpleTree(rows, today, nextRowId);
+  const team = [...new Set(rows.map((r) => r.responsable).filter(Boolean))];
+  return { team, tree };
+}
+
+// --- Formato Gantt real: metadata en filas superiores, luego encabezado
+// Nivel | Tipo | Etiqueta (solo si es hito) | Nombre | Inicio | Fin | % avance
+// | <meses...>. Nivel 1 = línea, Nivel 2 = iniciativa, Nivel 3 = actividad/hito.
+// No trae columna Responsable. ---
+
+function findGanttHeaderRow(worksheet) {
+  for (let r = 1; r <= Math.min(20, worksheet.rowCount); r++) {
+    const row = worksheet.getRow(r);
+    const cell1 = String(row.getCell(1).value || "").trim();
+    const cell2 = String(row.getCell(2).value || "").trim();
+    if (cell1 === "Nivel" && cell2 === "Tipo") return r;
+  }
+  return null;
+}
+
+function isGanttSheet(worksheet) {
+  return findGanttHeaderRow(worksheet) != null;
+}
+
+function buildGanttTree(worksheet, headerRow) {
+  const tree = [];
+  let currentLinea = null;
+  let currentIniciativa = null;
+
+  for (let r = headerRow + 1; r <= worksheet.rowCount; r++) {
+    const row = worksheet.getRow(r);
+    const nivel = Number(row.getCell(1).value);
+    const tipoRaw = String(row.getCell(2).value || "").trim();
+    const nombre = String(row.getCell(4).value || "").trim();
+    if (!nivel || !nombre) continue;
+
+    const tipo = tipoRaw === "Hito" ? "Hito" : "Tarea";
+    const inicio = toIsoDate(row.getCell(5).value);
+    const fin = toIsoDate(row.getCell(6).value);
+    const avanceRaw = row.getCell(7).value;
+    const avance = typeof avanceRaw === "number" ? Math.round(avanceRaw) : 0;
+    const node = { row: r, nombre, tipo, responsable: "", inicio, fin, avance };
+
+    if (nivel === 1) {
+      currentLinea = { ...node, initiatives: [] };
+      tree.push(currentLinea);
+      currentIniciativa = null;
+    } else if (nivel === 2 && currentLinea) {
+      currentIniciativa = { ...node, activities: [] };
+      currentLinea.initiatives.push(currentIniciativa);
+    } else if (nivel === 3 && currentLinea) {
+      if (currentIniciativa) {
+        currentIniciativa.activities.push(node);
+      } else {
+        // Actividad/hito sin iniciativa (Nivel 2) contenedora: se muestra
+        // como iniciativa propia sin actividades hijas.
+        currentLinea.initiatives.push({ ...node, activities: [] });
+      }
+    }
+  }
+
+  return tree;
+}
+
+function parseGanttSheet(worksheet) {
+  const headerRow = findGanttHeaderRow(worksheet);
+  const tree = buildGanttTree(worksheet, headerRow);
+  return { team: [], tree };
+}
+
 export async function parseWorkbookBuffer(buffer, { today = new Date() } = {}) {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
 
   const result = {};
   for (const worksheet of workbook.worksheets) {
-    const rows = sheetRows(worksheet);
-    let counter = 0;
-    const nextRowId = () => ++counter;
-    const tree = buildTree(rows, today, nextRowId);
-    const team = [...new Set(rows.map((r) => r.responsable).filter(Boolean))];
-    result[worksheet.name] = { team, tree };
+    if (SKIP_SHEETS.has(worksheet.name)) continue;
+
+    const parsed = isGanttSheet(worksheet)
+      ? parseGanttSheet(worksheet)
+      : parseSimpleSheet(worksheet, today);
+
+    result[worksheet.name] = parsed;
+    const alias = SHEET_ALIASES[worksheet.name];
+    if (alias) result[alias] = parsed;
   }
   return result;
 }
