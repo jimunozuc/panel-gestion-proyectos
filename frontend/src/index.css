@@ -79,6 +79,10 @@ body {
   border-collapse: collapse;
 }
 
+.glosario-page .indicadores-table {
+  max-width: 800px;
+}
+
 .indicadores-table th,
 .indicadores-table td {
   border: 1px solid #cbd5e1;
