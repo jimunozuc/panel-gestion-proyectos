@@ -153,40 +153,52 @@ function parseSimpleSheet(worksheet, today) {
 // --- Formato Gantt real: metadata en filas superiores, luego encabezado
 // Nivel | Tipo | Etiqueta (solo si es hito) | Nombre | Inicio | Fin | % avance
 // | <meses...>. Nivel 1 = línea, Nivel 2 = iniciativa, Nivel 3 = actividad/hito.
-// No trae columna Responsable. ---
+// La columna Responsable es opcional (el archivo real la agregó después) y,
+// si existe, puede estar en cualquier posición: se ubican las columnas por
+// nombre de encabezado, no por índice fijo. ---
 
-function findGanttHeaderRow(worksheet) {
+function findGanttHeader(worksheet) {
   for (let r = 1; r <= Math.min(20, worksheet.rowCount); r++) {
     const row = worksheet.getRow(r);
-    const cell1 = String(row.getCell(1).value || "").trim();
-    const cell2 = String(row.getCell(2).value || "").trim();
-    if (cell1 === "Nivel" && cell2 === "Tipo") return r;
+    const cols = {};
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const label = String(cell.value || "").trim();
+      if (label) cols[label] = colNumber;
+    });
+    if (cols["Nivel"] && cols["Tipo"]) return { headerRow: r, cols };
   }
   return null;
 }
 
 function isGanttSheet(worksheet) {
-  return findGanttHeaderRow(worksheet) != null;
+  return findGanttHeader(worksheet) != null;
 }
 
-function buildGanttTree(worksheet, headerRow) {
+function buildGanttTree(worksheet, header) {
+  const { headerRow, cols } = header;
+  const get = (row, label) => (cols[label] ? row.getCell(cols[label]).value : null);
+
   const tree = [];
+  const team = [];
   let currentLinea = null;
   let currentIniciativa = null;
 
   for (let r = headerRow + 1; r <= worksheet.rowCount; r++) {
     const row = worksheet.getRow(r);
-    const nivel = Number(row.getCell(1).value);
-    const tipoRaw = String(row.getCell(2).value || "").trim();
-    const nombre = String(row.getCell(4).value || "").trim();
+    const nivel = Number(get(row, "Nivel"));
+    const tipoRaw = String(get(row, "Tipo") || "").trim();
+    const nombre = String(get(row, "Nombre") || "").trim();
     if (!nivel || !nombre) continue;
 
     const tipo = tipoRaw === "Hito" ? "Hito" : "Tarea";
-    const inicio = toIsoDate(row.getCell(5).value);
-    const fin = toIsoDate(row.getCell(6).value);
-    const avanceRaw = row.getCell(7).value;
+    const responsable = String(get(row, "Responsable") || "").trim();
+    const inicio = toIsoDate(get(row, "Inicio"));
+    const fin = toIsoDate(get(row, "Fin"));
+    const avanceRaw = get(row, "% avance");
     const avance = typeof avanceRaw === "number" ? Math.round(avanceRaw) : 0;
-    const node = { row: r, nombre, tipo, responsable: "", inicio, fin, avance };
+    const node = { row: r, nombre, tipo, responsable, inicio, fin, avance };
+
+    if (responsable && !team.includes(responsable)) team.push(responsable);
 
     if (nivel === 1) {
       currentLinea = { ...node, initiatives: [] };
@@ -206,13 +218,12 @@ function buildGanttTree(worksheet, headerRow) {
     }
   }
 
-  return tree;
+  return { tree, team };
 }
 
 function parseGanttSheet(worksheet) {
-  const headerRow = findGanttHeaderRow(worksheet);
-  const tree = buildGanttTree(worksheet, headerRow);
-  return { team: [], tree };
+  const header = findGanttHeader(worksheet);
+  return buildGanttTree(worksheet, header);
 }
 
 export async function parseWorkbookBuffer(buffer, { today = new Date() } = {}) {

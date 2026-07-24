@@ -67,6 +67,33 @@ export function allInitiatives(tree) {
   return r;
 }
 
+export function buildMonthGrid(tree) {
+  const dates = [];
+  function walk(n) {
+    if (n.inicio) dates.push(n.inicio);
+    if (n.fin) dates.push(n.fin);
+  }
+  tree.forEach((g) => {
+    walk(g);
+    g.initiatives.forEach((i) => {
+      walk(i);
+      i.activities.forEach(walk);
+    });
+  });
+
+  if (!dates.length) {
+    return { epochYear: 2026, months: [], monthIndexOf: () => null };
+  }
+
+  const epochYear = Math.min(...dates.map((d) => Number(d.slice(0, 4))));
+  const monthIndexOf = (iso) =>
+    iso == null ? null : (Number(iso.slice(0, 4)) - epochYear) * 12 + (Number(iso.slice(5, 7)) - 1);
+  const maxIndex = Math.max(...dates.map(monthIndexOf));
+  const months = Array.from({ length: maxIndex + 1 }, (_, idx) => monthName(idx, epochYear));
+
+  return { epochYear, months, monthIndexOf };
+}
+
 export function allNodes(tree) {
   const r = [];
   tree.forEach((g) =>
