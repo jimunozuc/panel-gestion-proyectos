@@ -1,5 +1,13 @@
 export const RELEASES = [
   {
+    version: "MVP 2.0",
+    status: "hecho",
+    items: [
+      "Cada iniciativa con proyectos reales conectados muestra su % de avance y sus hitos cumplidos junto al nombre, por ejemplo \"6.1 Modelo formativo 34% · 4/21 hitos\".",
+      "Nueva vista Seguimiento (botón bajo Contexto): consolida el avance, los hitos y la carga de trabajo de todos los proyectos reales del Plan en un solo lugar, pensada para el equipo que da seguimiento al plan estratégico completo.",
+    ],
+  },
+  {
     version: "MVP 1.3",
     status: "hecho",
     items: [
