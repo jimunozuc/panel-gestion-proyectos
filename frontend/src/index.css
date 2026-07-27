@@ -262,12 +262,12 @@ body {
   margin-top: auto;
   padding-top: 12px;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
 }
 
 .nivel-chip {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   background: var(--uc-azul);
   color: #fff;
