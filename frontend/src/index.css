@@ -269,6 +269,7 @@ body {
 .nivel-chip {
   display: flex;
   align-items: center;
+  min-height: 42px;
   background: var(--uc-azul);
   color: #fff;
   text-decoration: none;
