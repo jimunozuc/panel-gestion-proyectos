@@ -1,11 +1,20 @@
 export const RELEASES = [
   {
+    version: "MVP 1.3",
+    status: "hecho",
+    items: [
+      "Las 5 iniciativas de Inteligencia digital (6.1 a 6.5) ya tienen su descripción oficial del Plan.",
+      "6.1 Modelo formativo muestra sus 3 proyectos reales — Nodo UC +IA, IA en el Currículo y UC Bots — cada uno con su propia ficha de 7 vistas.",
+      "6.3 Gobernanza y 6.4 Gestión eficiente ya listan sus proyectos oficiales, aunque todavía sin información cargada (se ven atenuados hasta que haya datos reales).",
+    ],
+  },
+  {
     version: "MVP 1.2",
     status: "hecho",
     items: [
       "Nueva navegación de riel fijo + breadcrumb: los 6 objetivos estratégicos del Plan quedan siempre visibles a la izquierda, sin tener que retroceder para saltar de uno a otro.",
       "Nueva pestaña de Contexto institucional, con el logo UC, la misión y la descripción real de los 6 objetivos y de las 6 iniciativas de Inteligencia digital.",
-      "La ficha de cada proyecto (hoy, 6.2 Desarrollo y despliegue) muestra sus 7 vistas como pestañas horizontales en vez de un menú aparte.",
+      "La ficha de cada proyecto muestra sus 7 vistas como pestañas horizontales en vez de un menú aparte.",
       "Las iniciativas de un objetivo se ven como tarjetas de 3 columnas, cada una con su propio botón de acción.",
     ],
   },
