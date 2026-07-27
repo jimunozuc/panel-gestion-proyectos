@@ -7,18 +7,21 @@ function useNavContext() {
   const { ejeId: paramEjeId, proyectoId } = useParams();
   const location = useLocation();
   const isContextoRoute = location.pathname === "/contexto";
+  const isSeguimientoRoute = location.pathname === "/seguimiento";
   const proyecto = proyectoId ? findProyecto(proyectoId) : null;
   const ejeId = paramEjeId || proyecto?.eje.id || null;
   const eje = OBJETIVOS.find((o) => o.id === ejeId) || null;
-  return { ejeId, eje, isContextoRoute, proyectoId, proyecto };
+  return { ejeId, eje, isContextoRoute, isSeguimientoRoute, proyectoId, proyecto };
 }
 
 export default function PanelLayout() {
-  const { ejeId, eje, isContextoRoute, proyectoId, proyecto } = useNavContext();
+  const { ejeId, eje, isContextoRoute, isSeguimientoRoute, proyectoId, proyecto } = useNavContext();
 
   const crumbs = [];
   if (isContextoRoute) {
     crumbs.push({ label: "Contexto institucional", to: null });
+  } else if (isSeguimientoRoute) {
+    crumbs.push({ label: "Seguimiento", to: null });
   } else if (eje) {
     crumbs.push({ label: eje.label, to: proyectoId ? `/ejes/${eje.id}` : null });
     if (proyectoId && proyecto) {
@@ -40,6 +43,14 @@ export default function PanelLayout() {
                 school
               </span>
               <span className="nav-rail-label">Contexto</span>
+            </Link>
+          </li>
+          <li className={`nav-rail-item nav-rail-item--intro${isSeguimientoRoute ? " nav-rail-item--active" : ""}`}>
+            <Link to="/seguimiento" className="nav-rail-link">
+              <span className="material-symbols-rounded" aria-hidden="true">
+                insights
+              </span>
+              <span className="nav-rail-label">Seguimiento</span>
             </Link>
           </li>
         </ul>

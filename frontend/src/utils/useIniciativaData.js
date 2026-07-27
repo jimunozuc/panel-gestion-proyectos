@@ -26,3 +26,29 @@ export function useIniciativaData(num) {
 
   return state;
 }
+
+export function useMultipleIniciativaData(sheetIds) {
+  const key = sheetIds.join(",");
+  const [state, setState] = useState({ loading: true, dataById: {} });
+
+  useEffect(() => {
+    let cancelled = false;
+    setState({ loading: true, dataById: {} });
+    Promise.all(
+      sheetIds.map((id) =>
+        fetch(`${API_URL}/api/iniciativas/${id}`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => [id, data])
+          .catch(() => [id, null])
+      )
+    ).then((entries) => {
+      if (!cancelled) setState({ loading: false, dataById: Object.fromEntries(entries) });
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  return state;
+}

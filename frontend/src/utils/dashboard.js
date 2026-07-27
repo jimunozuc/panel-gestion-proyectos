@@ -118,3 +118,16 @@ export function allNodes(tree) {
   );
   return r;
 }
+
+export function summarizeTree(tree) {
+  const nodes = allNodes(tree);
+  const leaves = nodes.filter(
+    (n) => n.kind === "act" || (n.kind === "init" && (!n.activities || !n.activities.length))
+  );
+  const hitos = nodes.filter((n) => n.tipo === "Hito");
+  const avance = leaves.length
+    ? Math.round(leaves.reduce((s, n) => s + (Number(n.avance) || 0), 0) / leaves.length)
+    : 0;
+  const hitosDone = hitos.filter((h) => statusOf(h.avance) === "completada").length;
+  return { avance, taskCount: leaves.length, hitosDone, hitosTotal: hitos.length };
+}
