@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useOutletContext } from "react-router-dom";
 import { useIniciativaData } from "../utils/useIniciativaData.js";
 import {
   allNodes,
@@ -8,8 +9,6 @@ import {
   statusOf,
   STATUS_META,
 } from "../utils/dashboard.js";
-
-const INICIATIVA = "6.2";
 
 function initStatus(init) {
   if (init.activities && init.activities.length) {
@@ -22,7 +21,8 @@ function initStatus(init) {
 }
 
 export default function DistribucionResponsable() {
-  const { loading, error, data } = useIniciativaData(INICIATIVA);
+  const { sheetId } = useOutletContext();
+  const { loading, error, data } = useIniciativaData(sheetId);
   const nodes = useMemo(() => (data ? allNodes(data.tree) : []), [data]);
 
   return (

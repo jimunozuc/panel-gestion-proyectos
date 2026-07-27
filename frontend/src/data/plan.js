@@ -61,47 +61,93 @@ export const OBJETIVOS = [
 const INICIATIVAS_POR_EJE = {
   "inteligencia-digital": [
     {
-      id: "6.0",
-      label: "6.0 Observación",
-      enabled: false,
-      descripcion:
-        "Promover la observación y reflexión crítica sobre los avances en IA desde nuestro sello identitario, para guiar el avance ético y responsable de la IA, y orientar su desarrollo y uso al bien común.",
-    },
-    {
       id: "6.1",
       label: "6.1 Modelo formativo",
-      enabled: false,
+      enabled: true,
       descripcion:
         "Adaptar el modelo formativo a la presencia y uso de IA, incluyendo actualización curricular, formación docente, apoyo estudiantil, marcos éticos, y recursos pedagógicos.",
+      proyectos: [
+        {
+          id: "6.1.1",
+          label: "6.1.1 Nodo UC +IA",
+          enabled: true,
+          route: "/proyectos/6.1.1",
+          sheetId: "P6.1.1",
+        },
+        {
+          id: "6.1.2",
+          label: "6.1.2 IA en el Currículo",
+          enabled: true,
+          route: "/proyectos/6.1.2",
+          sheetId: "P6.1.2",
+        },
+        {
+          id: "6.1.3",
+          label: "6.1.3 UC Bots – Ecosistema UC de Agentes Inteligentes",
+          enabled: true,
+          route: "/proyectos/6.1.3",
+          sheetId: "P6.1.3",
+        },
+      ],
     },
     {
       id: "6.2",
       label: "6.2 Desarrollo y despliegue",
       enabled: true,
-      route: "/panel-gestion",
       descripcion:
         "Desarrollar y desplegar ecosistemas digitales e IA para potenciar el descubrimiento y la creación.",
+      proyectos: [],
     },
     {
       id: "6.3",
       label: "6.3 Gobernanza",
-      enabled: false,
+      enabled: true,
       descripcion:
         "Construir una gobernanza y arquitectura institucional de datos y plataformas que garantice calidad, interoperabilidad, seguridad y uso ético de la información.",
+      proyectos: [
+        {
+          id: "6.3.1",
+          label: "6.3.1 Marco Institucional de Gobernanza y Certificación",
+          enabled: false,
+        },
+        {
+          id: "6.3.2",
+          label: "6.3.2 FARO UC: Federación y Acceso a Repositorios y Orígenes de Datos",
+          enabled: false,
+        },
+        {
+          id: "6.3.3",
+          label: "6.3.3 SINERGIA UC",
+          enabled: false,
+        },
+      ],
     },
     {
       id: "6.4",
       label: "6.4 Gestión eficiente",
-      enabled: false,
+      enabled: true,
       descripcion:
         "Construir un ecosistema digital al servicio de una gestión organizacional eficiente, ágil y centrada en las personas.",
+      proyectos: [
+        {
+          id: "6.4.1",
+          label: "6.4.1 Gestión Digital Inteligente",
+          enabled: false,
+        },
+        {
+          id: "6.4.2",
+          label: "6.4.2 UC Nexo: Aceleración del Desarrollo Tecnológico",
+          enabled: false,
+        },
+      ],
     },
     {
       id: "6.5",
       label: "6.5 Bienestar",
-      enabled: false,
+      enabled: true,
       descripcion:
         "Desarrollar herramientas digitales que fomenten el bienestar de las personas, la conexión de la comunidad y la vinculación con actores y temáticas relevantes del medio externo.",
+      proyectos: [],
     },
   ],
 };
@@ -110,13 +156,12 @@ export function getIniciativas(ejeId) {
   return INICIATIVAS_POR_EJE[ejeId] || [];
 }
 
-// Único nodo de nivel 3 con datos reales hoy. Cuando haya más proyectos con
-// ficha propia, esto debería resolverse a partir de la ruta actual en vez de
-// buscar el primero con `route`.
-export function findProyectoActivo() {
+export function findProyecto(proyectoId) {
   for (const eje of OBJETIVOS) {
-    const iniciativa = getIniciativas(eje.id).find((i) => i.route);
-    if (iniciativa) return { eje, iniciativa };
+    for (const iniciativa of getIniciativas(eje.id)) {
+      const proyecto = (iniciativa.proyectos || []).find((p) => p.id === proyectoId);
+      if (proyecto) return { eje, iniciativa, proyecto };
+    }
   }
   return null;
 }

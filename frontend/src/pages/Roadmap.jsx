@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { useIniciativaData } from "../utils/useIniciativaData.js";
 import { buildMonthGrid, fmtDate, initials, lineMeta, personColor, statusOf, STATUS_META } from "../utils/dashboard.js";
 
-const INICIATIVA = "6.2";
 const COL_WIDTH = 44;
 const LABEL_WIDTH = 200;
 
@@ -22,7 +22,8 @@ function buildQuarters(monthCount, epochYear) {
 }
 
 export default function Roadmap() {
-  const { loading, error, data } = useIniciativaData(INICIATIVA);
+  const { sheetId } = useOutletContext();
+  const { loading, error, data } = useIniciativaData(sheetId);
   const [selected, setSelected] = useState(null);
 
   const grid = useMemo(

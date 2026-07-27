@@ -19,7 +19,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/contexto" replace />} />
         <Route path="/contexto" element={<Contexto />} />
         <Route path="/ejes/:ejeId" element={<EjeDetail />} />
-        <Route path="/panel-gestion" element={<ProyectoFicha />}>
+        <Route path="/proyectos/:proyectoId" element={<ProyectoFicha />}>
           <Route index element={<Navigate to="kpi" replace />} />
           <Route path="kpi" element={<Kpi />} />
           <Route path="carta-gantt" element={<CartaGantt />} />

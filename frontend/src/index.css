@@ -258,58 +258,48 @@ body {
   color: #b0b8c2;
 }
 
-.nivel-card-action {
+.nivel-card-proyectos {
   margin-top: auto;
   padding-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.btn-continuar--sm {
-  padding: 6px 14px;
-  font-size: 0.8rem;
-}
-
-.btn-continuar--sm .material-symbols-rounded {
-  font-size: 16px;
-}
-
-.btn-continuar--disabled {
+.nivel-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background: #eef0f2;
-  color: #9aa3af;
-  font-weight: 600;
-  font-size: 0.8rem;
-  padding: 6px 14px;
-  border-radius: 4px;
-  cursor: not-allowed;
-}
-
-.btn-continuar {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   background: var(--uc-azul);
   color: #fff;
   text-decoration: none;
   font-weight: 600;
-  font-size: 0.9rem;
-  padding: 10px 20px;
+  font-size: 0.78rem;
+  padding: 6px 12px;
   border-radius: 4px;
   transition: background 200ms cubic-bezier(0.2, 0, 0.2, 1);
 }
 
-.btn-continuar:hover {
+.nivel-chip:hover {
   background: var(--uc-azul-d);
 }
 
-.btn-continuar:focus-visible {
+.nivel-chip:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
 }
 
-.btn-continuar .material-symbols-rounded {
-  font-size: 18px;
+.nivel-chip--disabled {
+  background: #eef0f2;
+  color: #9aa3af;
+  cursor: not-allowed;
+}
+
+.nivel-card-empty {
+  margin-top: auto;
+  padding-top: 12px;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-style: italic;
 }
 
 .ficha-badge {
@@ -380,7 +370,7 @@ body {
   .nav-rail-link,
   .ficha-tab,
   .breadcrumb-link,
-  .btn-continuar {
+  .nivel-chip {
     transition: none;
   }
 }

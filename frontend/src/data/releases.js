@@ -1,5 +1,15 @@
 export const RELEASES = [
   {
+    version: "MVP 1.2",
+    status: "hecho",
+    items: [
+      "Nueva navegación de riel fijo + breadcrumb: los 6 objetivos estratégicos del Plan quedan siempre visibles a la izquierda, sin tener que retroceder para saltar de uno a otro.",
+      "Nueva pestaña de Contexto institucional, con el logo UC, la misión y la descripción real de los 6 objetivos y de las 6 iniciativas de Inteligencia digital.",
+      "La ficha de cada proyecto (hoy, 6.2 Desarrollo y despliegue) muestra sus 7 vistas como pestañas horizontales en vez de un menú aparte.",
+      "Las iniciativas de un objetivo se ven como tarjetas de 3 columnas, cada una con su propio botón de acción.",
+    ],
+  },
+  {
     version: "MVP 1.1",
     status: "hecho",
     items: [
