@@ -242,6 +242,18 @@ body {
   color: #55606f;
 }
 
+.nivel-card-progress {
+  margin-left: 8px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #55606f;
+  white-space: nowrap;
+}
+
+.nivel-card-progress strong {
+  color: var(--card-color, var(--uc-azul));
+}
+
 .nivel-card--disabled {
   border-top-color: #d8dce2;
 }
