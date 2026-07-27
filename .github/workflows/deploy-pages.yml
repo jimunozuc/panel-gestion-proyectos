@@ -59,7 +59,7 @@ jobs:
         env:
           NODE_ENV: production
           BASE_PATH: /panel-gestion-proyectos/dev/
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_API_URL: ${{ vars.VITE_API_URL_DEV }}
 
       - name: Combinar sitios (producción en raíz, desarrollo en /dev/)
         run: |
