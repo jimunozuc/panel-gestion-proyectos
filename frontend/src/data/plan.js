@@ -165,3 +165,19 @@ export function findProyecto(proyectoId) {
   }
   return null;
 }
+
+export function proyectosReales(iniciativa) {
+  return (iniciativa.proyectos || []).filter((p) => p.enabled && p.sheetId);
+}
+
+export function getTodosLosProyectosReales() {
+  const r = [];
+  for (const eje of OBJETIVOS) {
+    for (const iniciativa of getIniciativas(eje.id)) {
+      for (const proyecto of proyectosReales(iniciativa)) {
+        r.push({ eje, iniciativa, proyecto });
+      }
+    }
+  }
+  return r;
+}

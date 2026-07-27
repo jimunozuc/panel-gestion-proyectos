@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
-import { OBJETIVOS, getIniciativas } from "../data/plan.js";
+import { OBJETIVOS, getIniciativas, proyectosReales } from "../data/plan.js";
 import { useMultipleIniciativaData } from "../utils/useIniciativaData.js";
 import { summarizeTree } from "../utils/dashboard.js";
 
@@ -8,12 +8,8 @@ function tituloSinPrefijo(label) {
   return label.replace(/^\S+\s+/, "");
 }
 
-function proyectosRealesDe(iniciativa) {
-  return (iniciativa.proyectos || []).filter((p) => p.enabled && p.sheetId);
-}
-
 function rollup(iniciativa, dataById) {
-  const summaries = proyectosRealesDe(iniciativa)
+  const summaries = proyectosReales(iniciativa)
     .map((p) => dataById[p.sheetId]?.tree)
     .filter(Boolean)
     .map(summarizeTree);
@@ -33,7 +29,7 @@ export default function EjeDetail() {
   const iniciativas = getIniciativas(ejeId);
 
   const sheetIds = useMemo(
-    () => iniciativas.flatMap((it) => proyectosRealesDe(it).map((p) => p.sheetId)),
+    () => iniciativas.flatMap((it) => proyectosReales(it).map((p) => p.sheetId)),
     [iniciativas]
   );
   const { dataById } = useMultipleIniciativaData(sheetIds);

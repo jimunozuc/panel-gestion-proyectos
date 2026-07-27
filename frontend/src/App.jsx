@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import PanelLayout from "./layouts/PanelLayout.jsx";
 import Contexto from "./pages/Contexto.jsx";
+import Seguimiento from "./pages/Seguimiento.jsx";
 import EjeDetail from "./pages/EjeDetail.jsx";
 import ProyectoFicha from "./pages/ProyectoFicha.jsx";
 import ListadoHitos from "./pages/ListadoHitos.jsx";
@@ -18,6 +19,7 @@ export default function App() {
       <Route element={<PanelLayout />}>
         <Route path="/" element={<Navigate to="/contexto" replace />} />
         <Route path="/contexto" element={<Contexto />} />
+        <Route path="/seguimiento" element={<Seguimiento />} />
         <Route path="/ejes/:ejeId" element={<EjeDetail />} />
         <Route path="/proyectos/:proyectoId" element={<ProyectoFicha />}>
           <Route index element={<Navigate to="kpi" replace />} />
