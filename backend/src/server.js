@@ -63,13 +63,13 @@ app.get("/api/iniciativas/:num", async (req, res) => {
   try {
     const data = await getData();
     const sheet = data.sheets[req.params.num];
-    if (!sheet) {
-      res.status(404).json({ error: `No existe la hoja "${req.params.num}"` });
-      return;
-    }
 
+    // Postgres se consulta primero (y de forma independiente de si el Excel
+    // en memoria trae esta hoja hoy): así una hoja ya migrada sigue
+    // disponible después de un reinicio del backend, aunque el cache en
+    // memoria haya vuelto a poblarse desde el Excel de ejemplo local.
     try {
-      await importSheetIfEmpty(req.params.num, sheet);
+      if (sheet) await importSheetIfEmpty(req.params.num, sheet);
       const fromDb = await loadSheetFromDb(req.params.num);
       if (fromDb) {
         res.json({ ...fromDb, updatedAt: data.updatedAt, source: data.source, editable: true });
@@ -79,6 +79,10 @@ app.get("/api/iniciativas/:num", async (req, res) => {
       console.warn("Postgres no disponible, sirviendo datos del Excel en memoria:", dbErr.message);
     }
 
+    if (!sheet) {
+      res.status(404).json({ error: `No existe la hoja "${req.params.num}"` });
+      return;
+    }
     res.json({ ...sheet, updatedAt: data.updatedAt, source: data.source, editable: false });
   } catch (err) {
     res.status(500).json({ error: err.message });
