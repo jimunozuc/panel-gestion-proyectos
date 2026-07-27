@@ -12,6 +12,7 @@ import MapaColor from "./pages/MapaColor.jsx";
 import Roadmap from "./pages/Roadmap.jsx";
 import Glosario from "./pages/Glosario.jsx";
 import AppReleases from "./pages/AppReleases.jsx";
+import Admin from "./pages/Admin.jsx";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/contexto" replace />} />
         <Route path="/contexto" element={<Contexto />} />
         <Route path="/seguimiento" element={<Seguimiento />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="/ejes/:ejeId" element={<EjeDetail />} />
         <Route path="/proyectos/:proyectoId" element={<ProyectoFicha />}>
           <Route index element={<Navigate to="kpi" replace />} />

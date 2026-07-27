@@ -4,11 +4,12 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 export function useIniciativaData(num) {
   const [state, setState] = useState({ loading: true, error: null, data: null });
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    setState({ loading: true, error: null, data: null });
-    fetch(`${API_URL}/api/iniciativas/${num}`)
+    setState((s) => ({ ...s, loading: true, error: null }));
+    fetch(`${API_URL}/api/iniciativas/${num}`, { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error(`Error ${res.status} al cargar los datos`);
         return res.json();
@@ -22,9 +23,11 @@ export function useIniciativaData(num) {
     return () => {
       cancelled = true;
     };
-  }, [num]);
+  }, [num, reloadTick]);
 
-  return state;
+  const reload = () => setReloadTick((t) => t + 1);
+
+  return { ...state, reload };
 }
 
 export function useMultipleIniciativaData(sheetIds) {

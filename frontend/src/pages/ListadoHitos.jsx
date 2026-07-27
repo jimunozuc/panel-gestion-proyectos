@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useIniciativaData } from "../utils/useIniciativaData.js";
+import EditNodoModal from "../components/EditNodoModal.jsx";
 import {
   allNodes,
   fmtDate,
@@ -14,7 +15,8 @@ import {
 
 export default function ListadoHitos() {
   const { sheetId } = useOutletContext();
-  const { loading, error, data } = useIniciativaData(sheetId);
+  const { loading, error, data, reload } = useIniciativaData(sheetId);
+  const [editing, setEditing] = useState(null);
 
   const hitos = useMemo(() => {
     if (!data) return [];
@@ -80,6 +82,18 @@ export default function ListadoHitos() {
                         >
                           {status.label}
                         </span>
+                        {data.editable && (
+                          <button
+                            type="button"
+                            className="hito-edit-btn"
+                            onClick={() => setEditing(h)}
+                            aria-label={`Editar ${h.nombre}`}
+                          >
+                            <span className="material-symbols-rounded" aria-hidden="true">
+                              edit
+                            </span>
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -88,6 +102,10 @@ export default function ListadoHitos() {
             ))}
           </div>
         </>
+      )}
+
+      {editing && (
+        <EditNodoModal node={editing} onClose={() => setEditing(null)} onSaved={reload} />
       )}
     </div>
   );
