@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useOutletContext } from "react-router-dom";
 import { useIniciativaData } from "../utils/useIniciativaData.js";
 import {
   allNodes,
@@ -11,10 +12,9 @@ import {
   STATUS_META,
 } from "../utils/dashboard.js";
 
-const INICIATIVA = "6.2";
-
 export default function ListadoHitos() {
-  const { loading, error, data } = useIniciativaData(INICIATIVA);
+  const { sheetId } = useOutletContext();
+  const { loading, error, data } = useIniciativaData(sheetId);
 
   const hitos = useMemo(() => {
     if (!data) return [];

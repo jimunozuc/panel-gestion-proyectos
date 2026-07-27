@@ -27,23 +27,39 @@ embebido. Ver `## Origen de datos` más abajo para el detalle completo.
 
 ## Navegación
 
+Patrón de **riel fijo + breadcrumb** (`frontend/src/layouts/PanelLayout.jsx`):
+un riel lateral izquierdo, siempre visible, con los 6 objetivos estratégicos
+del Plan (además de una pestaña "Contexto" arriba de todos). Un breadcrumb
+arriba del contenido muestra la ruta completa y permite subir de nivel con
+un clic — no hace falta un botón de "volver" en cada vista.
+
 ```
-Iniciativas (6 Ejes del Plan, solo "Inteligencia digital" habilitado)
-  → Inteligencia digital (6.0-6.5, solo "6.2 Desarrollo y despliegue" habilitada)
-    → Panel de Gestión (Menú: KPI | Carta Gantt | Listado de Hitos |
+Contexto (misión institucional + descripción de los 6 objetivos)
+Objetivo (6 Ejes del Plan, solo "Inteligencia digital" habilitado)
+  → Iniciativa (6.1-6.5, tarjetas de 3 columnas, las 5 con descripción
+    oficial del Plan — cada tarjeta lista sus proyectos reales como chips)
+    → Ficha del proyecto (una por proyecto real, ej. "6.1.1 Nodo UC +IA";
+      pestañas horizontales: KPI | Carta Gantt | Listado de Hitos |
       Distribución por Responsable | Roadmap | Mapa de Color | Glosario)
-  → App Releases (avances y versiones de la app)
+  → App Releases (avances y versiones de la app, link aparte al pie del riel)
 ```
 
-Cada vista tiene su botón de volver al nivel anterior. Los ejes/iniciativas
-deshabilitados se muestran (gris, no clickeables) para representar el Plan
-completo aunque solo una parte esté activa.
+Los objetivos deshabilitados y los proyectos sin datos reales todavía se
+muestran (gris, no clickeables) para representar el Plan completo aunque
+solo una parte esté activa — no se inventan datos para los que no los tienen.
 
 ## Estructura
 
 - `frontend/` — React + Vite. Sirve las vistas y llama al backend.
-  - `src/data/plan.js` — nombres y estado enabled/disabled de los Ejes e
-    Iniciativas 6.x. Editar aquí para habilitar otro eje/iniciativa.
+  - `src/data/plan.js` — nombres, color y descripción de los Ejes e
+    Iniciativas 6.x, y la lista `proyectos[]` de cada iniciativa (cada uno
+    con su propio `enabled`/`sheetId`). Editar aquí para habilitar otro eje,
+    iniciativa o proyecto (necesita datos reales, no inventar contenido).
+  - `src/layouts/PanelLayout.jsx` — el riel fijo + breadcrumb, envuelve todas
+    las vistas vía `<Outlet />`.
+  - `src/pages/Contexto.jsx`, `src/pages/EjeDetail.jsx`,
+    `src/pages/ProyectoFicha.jsx` — nivel 0 (contexto), nivel 1→2
+    (objetivo → iniciativas) y nivel 3 (ficha del proyecto con pestañas).
 - `backend/` — Node.js + Express. Recibe el Excel real (Gantt de una sola
   hoja, ver `## Origen de datos`) vía `POST /api/webhook/refresh` y expone
   `GET /api/iniciativas/:num` con los datos ya procesados (árbol línea →
@@ -90,12 +106,14 @@ Backend en `http://localhost:3001`, frontend en `http://localhost:8080`. Cada
 
 ## Estado actual
 
-- Navegación Iniciativas → Ejes → Panel de Gestión: **hecha**, con colores
-  institucionales UC (`--uc-azul:#0176DE --uc-navy:#03122E
-  --uc-amarillo:#FEC60D`).
+- Navegación de riel fijo + breadcrumb (Contexto → Objetivo → Iniciativa →
+  Ficha del proyecto): **hecha**, con colores institucionales UC
+  (`--uc-azul:#0176DE --uc-navy:#03122E --uc-amarillo:#FEC60D`), tipografía
+  Roboto e íconos Material Symbols Rounded. Ver Versión 2.3 abajo.
 - Panel de Gestión: 7 vistas, todas migradas con datos reales (KPI, Carta
   Gantt, Listado de Hitos, Distribución por Responsable, Roadmap, Mapa de
-  Color, Glosario). Ver Versión 2.2 abajo.
+  Color, Glosario), ahora como pestañas dentro de la ficha del proyecto.
+  Ver Versión 2.2 abajo.
 - App Releases: página con los avances/versiones de la app (ver
   `frontend/src/data/releases.js` para agregar entradas nuevas).
 - Acceso: pensado para quedar restringido a cuentas de la organización, pero
@@ -128,6 +146,21 @@ Las 7 vistas del Panel de Gestión están migradas con datos reales:
 **Fuente de datos:** ver `## Origen de datos` más abajo — el backend recibe
 el Excel real vía el watcher local y ya no usa datos "en duro" salvo como
 respaldo mientras no llega el primer push.
+
+### Versión 2.3 — Rediseño de navegación (riel fijo + breadcrumb) ✅ hecho
+Reemplazo de la navegación de páginas sueltas (Iniciativas → Ejes → Menú)
+por un layout único (`PanelLayout.jsx`) con riel lateral fijo y breadcrumb,
+más una pestaña nueva de Contexto institucional con el logo UC. Detalle en
+`## Navegación` arriba.
+
+### Versión 2.4 — Nivel de proyecto por iniciativa ✅ hecho
+Recuperado el nivel 3 (Proyecto) dentro de cada iniciativa de Inteligencia
+digital: `6.1` lista sus 3 proyectos reales (Nodo UC +IA, IA en el Currículo,
+UC Bots), `6.3` y `6.4` listan sus proyectos oficiales aunque todavía sin
+hoja propia (se ven deshabilitados). Rutas cambiaron de
+`/panel-gestion/:slug` a `/proyectos/:proyectoId/:slug`; las 7 vistas ya no
+hardcodean la iniciativa `6.2`, reciben el `sheetId` del proyecto activo vía
+contexto de ruta (`useOutletContext`).
 
 ### Versión 3 — Login institucional (pendiente)
 Login con cuenta Microsoft/UC (Entra ID), para que solo gente de la
@@ -187,9 +220,9 @@ Fecha inicio | Fecha limite`. El backend agrupa por Proyecto → Subproyecto
 contra la fecha de hoy (no hay columna de avance manual). Ver
 `backend/src/parseWorkbook.js`.
 
-Por ahora solo la hoja `6.2` (única iniciativa habilitada, ver
-`frontend/src/data/plan.js`) se conecta a las vistas Listado de Hitos y
-Distribución por Responsable.
+Hoy hay tres hojas reales conectadas — `P6.1.1`, `P6.1.2` y `P6.1.3` (ver
+`proyectos[]` en `frontend/src/data/plan.js`) — cada una alimentando las 7
+vistas de su propia ficha de proyecto.
 
 Mientras el backend no reciba ningún archivo (recién desplegado, antes del
 primer push del script local), sirve `backend/data/panel_iniciativas.xlsx`

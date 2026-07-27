@@ -25,20 +25,23 @@ export default function EjeDetail() {
           <span className="nivel-card-num">{it.id}</span>
           <h3 className="nivel-card-title">{tituloSinPrefijo(it.label)}</h3>
           {it.descripcion && <p className="nivel-card-desc">{it.descripcion}</p>}
-          <div className="nivel-card-action">
-            {it.enabled && it.route ? (
-              <Link to={it.route} className="btn-continuar btn-continuar--sm">
-                Continuar
-                <span className="material-symbols-rounded" aria-hidden="true">
-                  arrow_forward
-                </span>
-              </Link>
-            ) : (
-              <span className="btn-continuar--disabled" aria-disabled="true">
-                Próximamente
-              </span>
-            )}
-          </div>
+          {it.proyectos && it.proyectos.length > 0 ? (
+            <div className="nivel-card-proyectos">
+              {it.proyectos.map((p) =>
+                p.enabled ? (
+                  <Link key={p.id} to={p.route} className="nivel-chip">
+                    {p.label}
+                  </Link>
+                ) : (
+                  <span key={p.id} className="nivel-chip nivel-chip--disabled" aria-disabled="true">
+                    {p.label}
+                  </span>
+                )
+              )}
+            </div>
+          ) : (
+            <p className="nivel-card-empty">Aún no hay proyectos definidos.</p>
+          )}
         </div>
       ))}
     </div>

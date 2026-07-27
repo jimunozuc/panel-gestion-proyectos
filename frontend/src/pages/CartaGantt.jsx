@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { useIniciativaData } from "../utils/useIniciativaData.js";
 import {
   buildMonthGrid,
@@ -9,7 +10,6 @@ import {
   statusOf,
 } from "../utils/dashboard.js";
 
-const INICIATIVA = "6.2";
 const COL_WIDTH = 42;
 const LABEL_WIDTH = 260;
 
@@ -60,7 +60,8 @@ function GanttBar({ node, grid }) {
 }
 
 export default function CartaGantt() {
-  const { loading, error, data } = useIniciativaData(INICIATIVA);
+  const { sheetId } = useOutletContext();
+  const { loading, error, data } = useIniciativaData(sheetId);
   const [lineFilter, setLineFilter] = useState("todas");
   const [personFilter, setPersonFilter] = useState("todos");
   const [closedLines, setClosedLines] = useState({});

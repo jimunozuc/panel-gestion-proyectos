@@ -1,20 +1,21 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useParams } from "react-router-dom";
 import { PANEL_PAGES } from "../data/panelPages.js";
-import { findProyectoActivo } from "../data/plan.js";
+import { findProyecto } from "../data/plan.js";
 
 export default function ProyectoFicha() {
-  const proyecto = findProyectoActivo();
+  const { proyectoId } = useParams();
+  const info = findProyecto(proyectoId);
 
   return (
     <div className="ficha">
       <span className="ficha-badge">Proyecto</span>
-      <h1 className="ficha-title">{proyecto ? proyecto.iniciativa.label : "Proyecto"}</h1>
+      <h1 className="ficha-title">{info ? info.proyecto.label : "Proyecto"}</h1>
 
       <nav className="ficha-tabs" aria-label="Vistas del proyecto">
         {PANEL_PAGES.map((p) => (
           <NavLink
             key={p.slug}
-            to={`/panel-gestion/${p.slug}`}
+            to={`/proyectos/${proyectoId}/${p.slug}`}
             className={({ isActive }) => `ficha-tab${isActive ? " ficha-tab--active" : ""}`}
           >
             <span className="material-symbols-rounded" aria-hidden="true">
@@ -26,7 +27,7 @@ export default function ProyectoFicha() {
       </nav>
 
       <div className="ficha-view">
-        <Outlet />
+        <Outlet context={{ sheetId: info?.proyecto.sheetId }} />
       </div>
     </div>
   );

@@ -1,29 +1,29 @@
 import { Fragment } from "react";
 import { Link, Outlet, useLocation, useParams } from "react-router-dom";
-import { OBJETIVOS, findProyectoActivo } from "../data/plan.js";
+import { OBJETIVOS, findProyecto } from "../data/plan.js";
 import ucLogo from "../assets/uc-logo-blanco.png";
 
 function useNavContext() {
-  const { ejeId: paramEjeId } = useParams();
+  const { ejeId: paramEjeId, proyectoId } = useParams();
   const location = useLocation();
   const isContextoRoute = location.pathname === "/contexto";
-  const isProyectoRoute = location.pathname.startsWith("/panel-gestion");
-  const proyecto = isProyectoRoute ? findProyectoActivo() : null;
+  const proyecto = proyectoId ? findProyecto(proyectoId) : null;
   const ejeId = paramEjeId || proyecto?.eje.id || null;
   const eje = OBJETIVOS.find((o) => o.id === ejeId) || null;
-  return { ejeId, eje, isContextoRoute, isProyectoRoute, proyecto };
+  return { ejeId, eje, isContextoRoute, proyectoId, proyecto };
 }
 
 export default function PanelLayout() {
-  const { ejeId, eje, isContextoRoute, isProyectoRoute, proyecto } = useNavContext();
+  const { ejeId, eje, isContextoRoute, proyectoId, proyecto } = useNavContext();
 
   const crumbs = [];
   if (isContextoRoute) {
     crumbs.push({ label: "Contexto institucional", to: null });
   } else if (eje) {
-    crumbs.push({ label: eje.label, to: isProyectoRoute ? `/ejes/${eje.id}` : null });
-    if (isProyectoRoute && proyecto) {
+    crumbs.push({ label: eje.label, to: proyectoId ? `/ejes/${eje.id}` : null });
+    if (proyectoId && proyecto) {
       crumbs.push({ label: proyecto.iniciativa.label, to: null });
+      crumbs.push({ label: proyecto.proyecto.label, to: null });
     }
   }
 

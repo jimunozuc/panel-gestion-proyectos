@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useOutletContext } from "react-router-dom";
 import { useIniciativaData } from "../utils/useIniciativaData.js";
 import {
   allInitiatives,
@@ -11,8 +12,6 @@ import {
   statusOf,
 } from "../utils/dashboard.js";
 
-const INICIATIVA = "6.2";
-
 function leavesOf(nodes) {
   return nodes.filter((n) => n.kind === "act" || (n.kind === "init" && (!n.activities || !n.activities.length)));
 }
@@ -23,7 +22,8 @@ function avgAvance(items) {
 }
 
 export default function Kpi() {
-  const { loading, error, data } = useIniciativaData(INICIATIVA);
+  const { sheetId } = useOutletContext();
+  const { loading, error, data } = useIniciativaData(sheetId);
 
   const nodes = useMemo(() => (data ? allNodes(data.tree) : []), [data]);
   const inits = useMemo(() => (data ? allInitiatives(data.tree) : []), [data]);

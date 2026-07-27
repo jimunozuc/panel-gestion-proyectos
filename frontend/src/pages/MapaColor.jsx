@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { useIniciativaData } from "../utils/useIniciativaData.js";
 import { buildMonthGrid, lineMeta, monthLong } from "../utils/dashboard.js";
 
-const INICIATIVA = "6.2";
 const COL_WIDTH = 56;
 const LABEL_WIDTH = 220;
 const TOTAL_WIDTH = 56;
@@ -20,7 +20,8 @@ function activeAt(leaves, monthIdx, monthIndexOf) {
 }
 
 export default function MapaColor() {
-  const { loading, error, data } = useIniciativaData(INICIATIVA);
+  const { sheetId } = useOutletContext();
+  const { loading, error, data } = useIniciativaData(sheetId);
   const [selMonth, setSelMonth] = useState(null);
   const [selCell, setSelCell] = useState(null);
 
