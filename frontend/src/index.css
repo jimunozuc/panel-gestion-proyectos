@@ -695,6 +695,94 @@ body {
   white-space: nowrap;
 }
 
+.hito-type-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
+.hito-type-badge--hito {
+  background: rgba(254, 198, 13, 0.25);
+  color: #7a5b00;
+}
+
+.hito-type-badge--tarea {
+  background: #eff1f3;
+  color: #707070;
+}
+
+.hitos-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.hitos-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: none;
+  border-radius: 4px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #fff;
+  background: var(--uc-azul);
+  cursor: pointer;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.hitos-add-btn:hover {
+  background: var(--uc-azul-d);
+}
+
+.hitos-add-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
+.hitos-add-btn .material-symbols-rounded {
+  font-size: 1.1rem;
+}
+
+.hito-actions {
+  display: flex;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.hito-delete-btn {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 4px;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0.2, 1), color 180ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.hito-delete-btn:hover {
+  background: #fbe9e7;
+  color: #b3261e;
+}
+
+.hito-delete-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
 .responsable-page {
   max-width: 900px;
   margin: 0 auto;
@@ -1982,6 +2070,14 @@ body {
   background: var(--uc-azul-d);
 }
 
+.session-modal-submit--danger {
+  background: #b3261e;
+}
+
+.session-modal-submit--danger:hover {
+  background: #8c1d17;
+}
+
 .session-modal-submit:disabled,
 .session-modal-cancel:disabled {
   opacity: 0.6;
@@ -2022,6 +2118,30 @@ body {
   outline: none;
   border-color: var(--uc-azul);
   box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
+.edit-nodo-field select,
+.edit-nodo-field textarea {
+  font-weight: 400;
+  font-family: inherit;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: #fff;
+  transition: box-shadow 180ms cubic-bezier(0.2, 0, 0.2, 1), border-color 180ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.edit-nodo-field select:focus-visible,
+.edit-nodo-field textarea:focus-visible {
+  outline: none;
+  border-color: var(--uc-azul);
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
+.edit-nodo-field textarea {
+  resize: vertical;
+  min-height: 4.5rem;
 }
 
 .edit-nodo-row {
@@ -2161,6 +2281,11 @@ body {
   outline: none;
   border-color: var(--uc-azul);
   box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
+.admin-solicitud-form {
+  max-width: 480px;
+  margin-bottom: 1rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
