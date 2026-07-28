@@ -592,6 +592,227 @@ body {
   margin-bottom: 0.25rem;
 }
 
+.releases-guide-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+  color: var(--uc-azul);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.releases-guide-link:hover {
+  text-decoration: underline;
+}
+
+.releases-guide-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+  border-radius: 4px;
+}
+
+.como-funciona-page {
+  max-width: 880px;
+  align-items: stretch;
+  text-align: left;
+}
+
+.cf-section {
+  margin-top: 2.5rem;
+}
+
+.cf-section h2 {
+  font-size: 1.3rem;
+  margin: 0 0 0.4rem;
+}
+
+.cf-section-intro {
+  color: #57647a;
+  margin: 0 0 1.25rem;
+  max-width: 62ch;
+}
+
+.env-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 800px) {
+  .env-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.env-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(136, 136, 136, 0.18);
+  padding: 1.25rem 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.env-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.env-card-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #57647a;
+  font-size: 20px;
+}
+
+.env-card:nth-child(2) .env-card-icon {
+  background: var(--uc-azul);
+  color: #fff;
+}
+
+.env-card:nth-child(3) .env-card-icon {
+  background: var(--uc-amarillo);
+  color: var(--uc-navy);
+}
+
+.env-card-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.env-card-ruta {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  color: #57647a;
+  margin: -0.4rem 0 0;
+}
+
+.env-card-desc {
+  font-size: 0.92rem;
+  color: #475569;
+  margin: 0;
+}
+
+.env-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  color: #334155;
+}
+
+.env-card-list li {
+  padding-left: 0.9rem;
+  position: relative;
+}
+
+.env-card-list li::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #94a3b8;
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+}
+
+.env-card-footer {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #e2e8f0;
+  font-size: 0.82rem;
+  color: #57647a;
+}
+
+.flow-diagram-wrap {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(136, 136, 136, 0.18);
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.flow-diagram-svg {
+  width: 100%;
+  min-width: 640px;
+  height: auto;
+}
+
+.cf-compare-table th:not([scope="row"]),
+.cf-compare-table td {
+  text-align: center;
+}
+
+.cf-compare-table th[scope="row"] {
+  text-align: left;
+  font-weight: 600;
+}
+
+.cf-yes {
+  color: #166534;
+}
+
+.cf-no {
+  color: #94a3b8;
+}
+
+.cf-why-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 700px) {
+  .cf-why-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cf-why-item {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.cf-why-item h3 {
+  font-size: 0.95rem;
+  margin: 0 0 0.35rem;
+}
+
+.cf-why-item p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #57647a;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .hitos-page {
   align-items: stretch;
   max-width: 900px;
