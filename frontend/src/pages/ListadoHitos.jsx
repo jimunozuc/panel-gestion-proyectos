@@ -1,6 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useIniciativaData } from "../utils/useIniciativaData.js";
+import { useSession } from "../utils/SessionContext.jsx";
+import { apiFetch } from "../utils/api.js";
+import EditNodoModal from "../components/EditNodoModal.jsx";
+import AddNodoModal from "../components/AddNodoModal.jsx";
+import ConfirmDialog from "../components/ConfirmDialog.jsx";
 import {
   allNodes,
   fmtDate,
@@ -12,19 +17,34 @@ import {
   STATUS_META,
 } from "../utils/dashboard.js";
 
+const isLeaf = (n) => n.kind === "act" || (n.kind === "init" && !n.activities?.length);
+
 export default function ListadoHitos() {
   const { sheetId } = useOutletContext();
-  const { loading, error, data } = useIniciativaData(sheetId);
+  const { ensureSession } = useSession();
+  const { loading, error, data, reload } = useIniciativaData(sheetId);
+  const [editing, setEditing] = useState(null);
+  const [adding, setAdding] = useState(false);
+  const [deleting, setDeleting] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
-  const hitos = useMemo(() => {
+  const items = useMemo(() => {
     if (!data) return [];
     return allNodes(data.tree)
-      .filter((n) => n.tipo === "Hito")
+      .filter(isLeaf)
       .sort((a, b) => (a.inicio || "").localeCompare(b.inicio || ""));
   }, [data]);
 
+  const iniciativaOptions = useMemo(() => {
+    if (!data) return [];
+    return allNodes(data.tree)
+      .filter((n) => n.kind === "init")
+      .map((n) => ({ value: n.row, label: `${n.line} · ${n.nombre}` }));
+  }, [data]);
+
   const byMonth = {};
-  hitos.forEach((h) => {
+  items.forEach((h) => {
     const key = h.inicio ? h.inicio.slice(0, 7) : "—";
     (byMonth[key] = byMonth[key] || []).push(h);
   });
@@ -35,6 +55,21 @@ export default function ListadoHitos() {
     return monthName((Number(y) - 2026) * 12 + (Number(mo) - 1), 2026);
   };
 
+  const confirmDelete = async () => {
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await ensureSession();
+      await apiFetch(`/api/nodos/${deleting.row}`, { method: "DELETE" });
+      setDeleting(null);
+      reload();
+    } catch (err) {
+      if (err.message !== "cancelado") setDeleteError(err.message || "No se pudo eliminar");
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   return (
     <div className="vista hitos-page">
       {loading && <p className="subtitle">Cargando datos...</p>}
@@ -42,9 +77,19 @@ export default function ListadoHitos() {
 
       {data && (
         <>
-          <p className="data-updated-at">
-            Datos actualizados: {new Date(data.updatedAt).toLocaleString("es-CL")}
-          </p>
+          <div className="hitos-toolbar">
+            <p className="data-updated-at">
+              Datos actualizados: {new Date(data.updatedAt).toLocaleString("es-CL")}
+            </p>
+            {data.editable && (
+              <button type="button" className="hitos-add-btn" onClick={() => setAdding(true)}>
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  add
+                </span>
+                Agregar
+              </button>
+            )}
+          </div>
           <div className="hitos-timeline">
             {monthKeys.map((key) => (
               <div key={key} className="hitos-month-group">
@@ -56,11 +101,17 @@ export default function ListadoHitos() {
                   {byMonth[key].map((h) => {
                     const meta = lineMeta(h.line);
                     const status = STATUS_META[statusOf(h.avance)];
+                    const isHito = h.tipo === "Hito";
                     return (
                       <div key={h.row} className="hito-card">
                         <span className="hito-marker" style={{ background: meta.c }} />
                         <div className="hito-info">
-                          <div className="hito-name">{h.nombre}</div>
+                          <div className="hito-name">
+                            {h.nombre}
+                            <span className={`hito-type-badge hito-type-badge--${isHito ? "hito" : "tarea"}`}>
+                              {h.tipo}
+                            </span>
+                          </div>
                           <div className="hito-sub">
                             {meta.label}
                             {h.parent ? ` · ${h.parent}` : ""}
@@ -80,14 +131,66 @@ export default function ListadoHitos() {
                         >
                           {status.label}
                         </span>
+                        {data.editable && (
+                          <span className="hito-actions">
+                            <button
+                              type="button"
+                              className="hito-edit-btn"
+                              onClick={() => setEditing(h)}
+                              aria-label={`Editar ${h.nombre}`}
+                            >
+                              <span className="material-symbols-rounded" aria-hidden="true">
+                                edit
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              className="hito-delete-btn"
+                              onClick={() => setDeleting(h)}
+                              aria-label={`Eliminar ${h.nombre}`}
+                            >
+                              <span className="material-symbols-rounded" aria-hidden="true">
+                                delete
+                              </span>
+                            </button>
+                          </span>
+                        )}
                       </div>
                     );
                   })}
                 </div>
               </div>
             ))}
+            {monthKeys.length === 0 && (
+              <p className="subtitle">Todavía no hay hitos ni tareas cargados para esta hoja.</p>
+            )}
           </div>
         </>
+      )}
+
+      {editing && (
+        <EditNodoModal node={editing} onClose={() => setEditing(null)} onSaved={reload} />
+      )}
+      {adding && (
+        <AddNodoModal
+          sheetId={sheetId}
+          iniciativas={iniciativaOptions}
+          onClose={() => setAdding(false)}
+          onSaved={reload}
+        />
+      )}
+      {deleting && (
+        <ConfirmDialog
+          title={`Eliminar ${(deleting.tipo || "elemento").toLowerCase()}`}
+          message={`¿Eliminar "${deleting.nombre}"? Esta acción no se puede deshacer.`}
+          busy={deleteBusy}
+          error={deleteError}
+          onConfirm={confirmDelete}
+          onCancel={() => {
+            setDeleting(null);
+            setDeleteError(null);
+          }}
+        />
       )}
     </div>
   );

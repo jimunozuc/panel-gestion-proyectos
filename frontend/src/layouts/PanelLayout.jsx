@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { Link, Outlet, useLocation, useParams } from "react-router-dom";
 import { OBJETIVOS, findProyecto } from "../data/plan.js";
+import { useSession } from "../utils/SessionContext.jsx";
 import ucLogo from "../assets/uc-logo-blanco.png";
 
 function useNavContext() {
@@ -8,20 +9,24 @@ function useNavContext() {
   const location = useLocation();
   const isContextoRoute = location.pathname === "/contexto";
   const isSeguimientoRoute = location.pathname === "/seguimiento";
+  const isAdminRoute = location.pathname === "/admin";
   const proyecto = proyectoId ? findProyecto(proyectoId) : null;
   const ejeId = paramEjeId || proyecto?.eje.id || null;
   const eje = OBJETIVOS.find((o) => o.id === ejeId) || null;
-  return { ejeId, eje, isContextoRoute, isSeguimientoRoute, proyectoId, proyecto };
+  return { ejeId, eje, isContextoRoute, isSeguimientoRoute, isAdminRoute, proyectoId, proyecto };
 }
 
 export default function PanelLayout() {
-  const { ejeId, eje, isContextoRoute, isSeguimientoRoute, proyectoId, proyecto } = useNavContext();
+  const { ejeId, eje, isContextoRoute, isSeguimientoRoute, isAdminRoute, proyectoId, proyecto } = useNavContext();
+  const { user, logout } = useSession();
 
   const crumbs = [];
   if (isContextoRoute) {
     crumbs.push({ label: "Contexto institucional", to: null });
   } else if (isSeguimientoRoute) {
     crumbs.push({ label: "Seguimiento", to: null });
+  } else if (isAdminRoute) {
+    crumbs.push({ label: "Administración", to: null });
   } else if (eje) {
     crumbs.push({ label: eje.label, to: proyectoId ? `/ejes/${eje.id}` : null });
     if (proyectoId && proyecto) {
@@ -86,6 +91,19 @@ export default function PanelLayout() {
           })}
         </ul>
         <div className="nav-rail-footer">
+          {user && (
+            <div className="nav-rail-session">
+              <span className="nav-rail-session-name">{user.nombre}</span>
+              <button type="button" className="nav-rail-session-logout" onClick={logout}>
+                Salir
+              </button>
+            </div>
+          )}
+          {user?.rol === "administrador" && (
+            <Link to="/admin" className="nav-rail-footer-link">
+              Administración
+            </Link>
+          )}
           <Link to="/app-releases" className="nav-rail-footer-link">
             App Releases
           </Link>

@@ -1,10 +1,26 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=panel
+      - POSTGRES_PASSWORD=panel
+      - POSTGRES_DB=panel
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   backend:
     build: ./backend
     ports:
       - "3001:3001"
     environment:
       - REFRESH_SECRET=${REFRESH_SECRET}
+      - DATABASE_URL=postgres://panel:panel@postgres:5432/panel
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:8080}
+      - COOKIE_SECRET=${COOKIE_SECRET:-dev-secret-cambiar-en-produccion}
+    depends_on:
+      - postgres
 
   frontend:
     build:
@@ -16,3 +32,6 @@ services:
       - "8080:80"
     depends_on:
       - backend
+
+volumes:
+  postgres_data:

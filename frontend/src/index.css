@@ -120,11 +120,17 @@ body {
 }
 
 .nav-rail-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   padding: 12px 24px 4px;
   margin-top: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Los links del pie son inline por defecto: sin esto se pegan entre sí en
+   cuanto hay más de uno (pasa solo con sesión de administrador). */
 .nav-rail-footer-link {
   font-size: 0.75rem;
   color: #c7ccd6;
@@ -693,6 +699,94 @@ body {
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
   white-space: nowrap;
+}
+
+.hito-type-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
+.hito-type-badge--hito {
+  background: rgba(254, 198, 13, 0.25);
+  color: #7a5b00;
+}
+
+.hito-type-badge--tarea {
+  background: #eff1f3;
+  color: #707070;
+}
+
+.hitos-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.hitos-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: none;
+  border-radius: 4px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #fff;
+  background: var(--uc-azul);
+  cursor: pointer;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.hitos-add-btn:hover {
+  background: var(--uc-azul-d);
+}
+
+.hitos-add-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
+.hitos-add-btn .material-symbols-rounded {
+  font-size: 1.1rem;
+}
+
+.hito-actions {
+  display: flex;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.hito-delete-btn {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 4px;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0.2, 1), color 180ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.hito-delete-btn:hover {
+  background: #fbe9e7;
+  color: #b3261e;
+}
+
+.hito-delete-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
 }
 
 .responsable-page {
@@ -1884,4 +1978,329 @@ body {
   outline: none;
   box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
   border-radius: 4px;
+}
+
+/* --- Sesión (selector de usuario) y edición de nodos --- */
+
+.session-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 18, 46, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.session-modal {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(136, 136, 136, 0.18);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 360px;
+}
+
+.edit-nodo-modal {
+  max-width: 420px;
+}
+
+.session-modal-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  color: var(--uc-navy);
+  text-transform: capitalize;
+}
+
+.session-modal-desc {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.session-modal-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  transition: box-shadow 180ms cubic-bezier(0.2, 0, 0.2, 1), border-color 180ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.session-modal-input:focus-visible {
+  outline: none;
+  border-color: var(--uc-azul);
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
+.session-modal-error {
+  color: #b3261e;
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
+}
+
+.session-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.session-modal-cancel,
+.session-modal-submit {
+  border: none;
+  border-radius: 4px;
+  padding: 0.55rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0.2, 1), opacity 180ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.session-modal-cancel {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.session-modal-cancel:hover {
+  background: #e2e8f0;
+}
+
+.session-modal-submit {
+  background: var(--uc-azul);
+  color: #fff;
+}
+
+.session-modal-submit:hover {
+  background: var(--uc-azul-d);
+}
+
+.session-modal-submit--danger {
+  background: #b3261e;
+}
+
+.session-modal-submit--danger:hover {
+  background: #8c1d17;
+}
+
+.session-modal-submit:disabled,
+.session-modal-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.session-modal-cancel:focus-visible,
+.session-modal-submit:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
+.edit-nodo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.edit-nodo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: #334155;
+  font-weight: 500;
+}
+
+.edit-nodo-field input {
+  font-weight: 400;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: box-shadow 180ms cubic-bezier(0.2, 0, 0.2, 1), border-color 180ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.edit-nodo-field input:focus-visible {
+  outline: none;
+  border-color: var(--uc-azul);
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
+.edit-nodo-field select,
+.edit-nodo-field textarea {
+  font-weight: 400;
+  font-family: inherit;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: #fff;
+  transition: box-shadow 180ms cubic-bezier(0.2, 0, 0.2, 1), border-color 180ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.edit-nodo-field select:focus-visible,
+.edit-nodo-field textarea:focus-visible {
+  outline: none;
+  border-color: var(--uc-azul);
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
+.edit-nodo-field textarea {
+  resize: vertical;
+  min-height: 4.5rem;
+}
+
+.edit-nodo-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.edit-nodo-row .edit-nodo-field {
+  flex: 1;
+}
+
+.hito-edit-btn {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 4px;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0.2, 1), color 180ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.hito-edit-btn:hover {
+  background: #f1f5f9;
+  color: var(--uc-azul);
+}
+
+.hito-edit-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
+.nav-rail-session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nav-rail-session-name {
+  font-size: 0.75rem;
+  color: #fff;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-rail-session-logout {
+  background: transparent;
+  border: none;
+  color: #c7ccd6;
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  flex-shrink: 0;
+}
+
+.nav-rail-session-logout:hover {
+  color: #fff;
+}
+
+.nav-rail-session-logout:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+  border-radius: 4px;
+}
+
+/* --- Administración --- */
+
+.admin-page {
+  align-items: stretch;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.admin-section {
+  margin-top: 1.5rem;
+}
+
+.admin-section h3 {
+  color: var(--uc-navy);
+  margin-bottom: 0.75rem;
+}
+
+.admin-error {
+  color: #b3261e;
+  font-size: 0.9rem;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(136, 136, 136, 0.18);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid #eef2f6;
+  white-space: nowrap;
+}
+
+.admin-table th {
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.admin-role-select {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: #fff;
+}
+
+.admin-role-select:focus-visible {
+  outline: none;
+  border-color: var(--uc-azul);
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
+.admin-solicitud-form {
+  max-width: 480px;
+  margin-bottom: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-modal-input,
+  .session-modal-cancel,
+  .session-modal-submit,
+  .edit-nodo-field input,
+  .hito-edit-btn,
+  .admin-role-select {
+    transition: none;
+  }
 }
