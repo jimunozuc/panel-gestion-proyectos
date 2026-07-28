@@ -22,26 +22,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout consulta-v1 (producción, congelada — panel de consulta original)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: consulta-v1
           path: consulta-src
 
       - name: Checkout main (app nueva, producción)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: main
           path: main-src
 
       - name: Checkout develop (desarrollo)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: develop
           path: dev-src
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install deps (consulta-v1)
         working-directory: consulta-src/frontend
@@ -86,7 +86,7 @@ jobs:
           cp -r main-src/frontend/dist/. site/app/
           cp -r dev-src/frontend/dist/. site/dev/
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
@@ -98,4 +98,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
