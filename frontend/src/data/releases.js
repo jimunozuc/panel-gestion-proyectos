@@ -1,5 +1,14 @@
 export const RELEASES = [
   {
+    version: "MVP 3.0",
+    status: "hecho",
+    items: [
+      "Ahora se puede editar el panel directamente desde la aplicación — agregar, modificar y quitar hitos y tareas — sin depender de que alguien actualice el Excel. Cada cambio queda registrado en una bitácora con quién lo hizo y cuándo.",
+      "Nueva pantalla de Administración: usuarios y sus roles, bitácora completa de cambios, y un formulario para solicitar que se agregue un proyecto nuevo al Plan.",
+      "La aplicación con edición se publicó como entorno productivo propio (/app/), separado del panel de solo consulta que el equipo usa hoy — para poder mejorarla sin arriesgar la versión estable.",
+    ],
+  },
+  {
     version: "MVP 2.0",
     status: "hecho",
     items: [
