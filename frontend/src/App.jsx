@@ -12,6 +12,7 @@ import MapaColor from "./pages/MapaColor.jsx";
 import Roadmap from "./pages/Roadmap.jsx";
 import Glosario from "./pages/Glosario.jsx";
 import AppReleases from "./pages/AppReleases.jsx";
+import ComoFunciona from "./pages/ComoFunciona.jsx";
 import Admin from "./pages/Admin.jsx";
 
 export default function App() {
@@ -35,6 +36,7 @@ export default function App() {
         </Route>
       </Route>
       <Route path="/app-releases" element={<AppReleases />} />
+      <Route path="/como-funciona" element={<ComoFunciona />} />
     </Routes>
   );
 }

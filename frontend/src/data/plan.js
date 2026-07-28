@@ -73,6 +73,8 @@ const INICIATIVAS_POR_EJE = {
           enabled: true,
           route: "/proyectos/6.1.1",
           sheetId: "P6.1.1",
+          descripcion:
+            "Articula la reflexión, experimentación y difusión institucional sobre inteligencia artificial, conectando formación, docencia, investigación y vida universitaria para preparar a la comunidad UC frente a los desafíos y oportunidades de estas tecnologías.",
         },
         {
           id: "6.1.2",
@@ -80,6 +82,8 @@ const INICIATIVAS_POR_EJE = {
           enabled: true,
           route: "/proyectos/6.1.2",
           sheetId: "P6.1.2",
+          descripcion:
+            "Incorpora una formación curricular transversal en inteligencia artificial en todas las carreras, integrando fundamentos técnicos, éticos, sociales y disciplinares para desarrollar pensamiento crítico, criterio académico y uso responsable de IA.",
         },
         {
           id: "6.1.3",
@@ -87,6 +91,8 @@ const INICIATIVAS_POR_EJE = {
           enabled: true,
           route: "/proyectos/6.1.3",
           sheetId: "P6.1.3",
+          descripcion:
+            "Habilita herramientas, plataformas e infraestructura institucional de inteligencia artificial para la comunidad UC, promoviendo el acceso seguro, ético e interoperable a soluciones que apoyen la investigación, la docencia, el aprendizaje, la creación académica y la gestión universitaria.",
         },
       ],
     },

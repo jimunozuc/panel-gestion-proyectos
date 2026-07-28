@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import BackButton from "../components/BackButton.jsx";
 import { RELEASES } from "../data/releases.js";
 
@@ -13,6 +14,10 @@ export default function AppReleases() {
       <BackButton label="← Volver al menú" />
       <h1>App Releases</h1>
       <p className="subtitle">Avances y versiones de esta aplicación.</p>
+      <Link to="/como-funciona" className="releases-guide-link">
+        <span className="material-symbols-rounded" aria-hidden="true">explore</span>
+        ¿Nunca usaste esta app? Mirá cómo funciona
+      </Link>
       <div className="releases-list">
         {RELEASES.map((r) => (
           <section key={r.version} className="release-card">
