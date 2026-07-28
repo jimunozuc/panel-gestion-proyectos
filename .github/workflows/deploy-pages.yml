@@ -2,7 +2,7 @@ name: Deploy frontend to GitHub Pages
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, consulta-v1]
     paths:
       - "frontend/**"
       - ".github/workflows/deploy-pages.yml"
@@ -21,7 +21,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main (producción)
+      - name: Checkout consulta-v1 (producción, congelada — panel de consulta original)
+        uses: actions/checkout@v4
+        with:
+          ref: consulta-v1
+          path: consulta-src
+
+      - name: Checkout main (app nueva, producción)
         uses: actions/checkout@v4
         with:
           ref: main
@@ -37,17 +43,29 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install deps (main)
-        working-directory: main-src/frontend
+      - name: Install deps (consulta-v1)
+        working-directory: consulta-src/frontend
         run: npm ci
 
-      - name: Build main → /
-        working-directory: main-src/frontend
+      - name: Build consulta-v1 → /
+        working-directory: consulta-src/frontend
         run: npm run build
         env:
           NODE_ENV: production
           BASE_PATH: /panel-gestion-proyectos/
           VITE_API_URL: ${{ vars.VITE_API_URL }}
+
+      - name: Install deps (main)
+        working-directory: main-src/frontend
+        run: npm ci
+
+      - name: Build main → /app/
+        working-directory: main-src/frontend
+        run: npm run build
+        env:
+          NODE_ENV: production
+          BASE_PATH: /panel-gestion-proyectos/app/
+          VITE_API_URL: ${{ vars.VITE_API_URL_APP }}
 
       - name: Install deps (develop)
         working-directory: dev-src/frontend
@@ -61,10 +79,11 @@ jobs:
           BASE_PATH: /panel-gestion-proyectos/dev/
           VITE_API_URL: ${{ vars.VITE_API_URL_DEV }}
 
-      - name: Combinar sitios (producción en raíz, desarrollo en /dev/)
+      - name: Combinar sitios (consulta en raíz, app nueva en /app/, desarrollo en /dev/)
         run: |
-          mkdir -p site/dev
-          cp -r main-src/frontend/dist/. site/
+          mkdir -p site/app site/dev
+          cp -r consulta-src/frontend/dist/. site/
+          cp -r main-src/frontend/dist/. site/app/
           cp -r dev-src/frontend/dist/. site/dev/
 
       - uses: actions/upload-pages-artifact@v3
