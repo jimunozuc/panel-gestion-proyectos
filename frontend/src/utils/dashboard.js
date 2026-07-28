@@ -119,6 +119,10 @@ export function allNodes(tree) {
   return r;
 }
 
+export function leavesOf(nodes) {
+  return nodes.filter((n) => n.kind === "act" || (n.kind === "init" && (!n.activities || !n.activities.length)));
+}
+
 export function summarizeTree(tree) {
   const nodes = allNodes(tree);
   const leaves = nodes.filter(
