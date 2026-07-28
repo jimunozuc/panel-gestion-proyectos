@@ -72,7 +72,15 @@ app.get("/api/iniciativas/:num", async (req, res) => {
       if (sheet) await importSheetIfEmpty(req.params.num, sheet);
       const fromDb = await loadSheetFromDb(req.params.num);
       if (fromDb) {
-        res.json({ ...fromDb, updatedAt: data.updatedAt, source: data.source, editable: true });
+        res.json({
+          ...fromDb,
+          // La hoja ya vive en Postgres: manda su propia fecha de última
+          // edición. data.updatedAt es del cache del Excel y solo sirve
+          // como respaldo si por algún motivo no hubiera updated_at.
+          updatedAt: fromDb.updatedAt || data.updatedAt,
+          source: "postgres",
+          editable: true,
+        });
         return;
       }
     } catch (dbErr) {

@@ -55,6 +55,11 @@ export async function loadSheetFromDb(sheetId) {
   const roots = [];
   const team = [];
   const seen = new Set();
+  // Fecha real de la última edición de esta hoja. Una hoja que vive en
+  // Postgres ya no depende del Excel, así que la fecha del cache en memoria
+  // no dice nada de ella (puede venir del sample local horneado en la
+  // imagen). updated_at se refresca en cada PATCH, ver routes/nodos.js.
+  let updatedAt = null;
 
   for (const r of rows) {
     const node = {
@@ -70,6 +75,7 @@ export async function loadSheetFromDb(sheetId) {
       seen.add(node.responsable);
       team.push(node.responsable);
     }
+    if (r.updated_at && (!updatedAt || r.updated_at > updatedAt)) updatedAt = r.updated_at;
     nodeById.set(r.id, node);
   }
 
@@ -86,5 +92,5 @@ export async function loadSheetFromDb(sheetId) {
     }
   }
 
-  return { team, tree: roots };
+  return { team, tree: roots, updatedAt };
 }
