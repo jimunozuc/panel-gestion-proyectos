@@ -6,6 +6,7 @@ import {
   allNodes,
   fmtDate,
   initials,
+  leavesOf,
   personColor,
   PERSON_COLORS,
   statusOf,
@@ -14,10 +15,6 @@ import {
 
 function proyectoColor(idx) {
   return PERSON_COLORS[idx % PERSON_COLORS.length];
-}
-
-function leavesOf(nodes) {
-  return nodes.filter((n) => n.kind === "act" || (n.kind === "init" && (!n.activities || !n.activities.length)));
 }
 
 export default function Seguimiento() {
@@ -64,7 +61,13 @@ export default function Seguimiento() {
 
   return (
     <div className="vista seguimiento-page">
-      <p className="subtitle">Seguimiento consolidado de todos los proyectos reales del Plan.</p>
+      <div className="seguimiento-header">
+        <p className="subtitle">Seguimiento consolidado de todos los proyectos reales del Plan.</p>
+        <Link to="/seguimiento/tareas" className="seguimiento-ver-mas-btn">
+          <span className="material-symbols-rounded" aria-hidden="true">list_alt</span>
+          Ver más — todas las tareas
+        </Link>
+      </div>
 
       {loading && <p className="subtitle">Cargando datos...</p>}
 

@@ -8,21 +8,43 @@ function useNavContext() {
   const { ejeId: paramEjeId, proyectoId } = useParams();
   const location = useLocation();
   const isContextoRoute = location.pathname === "/contexto";
-  const isSeguimientoRoute = location.pathname === "/seguimiento";
+  const isSeguimientoRoute = location.pathname.startsWith("/seguimiento");
+  const isSeguimientoTareasRoute = location.pathname === "/seguimiento/tareas";
   const isAdminRoute = location.pathname === "/admin";
   const proyecto = proyectoId ? findProyecto(proyectoId) : null;
   const ejeId = paramEjeId || proyecto?.eje.id || null;
   const eje = OBJETIVOS.find((o) => o.id === ejeId) || null;
-  return { ejeId, eje, isContextoRoute, isSeguimientoRoute, isAdminRoute, proyectoId, proyecto };
+  return {
+    ejeId,
+    eje,
+    isContextoRoute,
+    isSeguimientoRoute,
+    isSeguimientoTareasRoute,
+    isAdminRoute,
+    proyectoId,
+    proyecto,
+  };
 }
 
 export default function PanelLayout() {
-  const { ejeId, eje, isContextoRoute, isSeguimientoRoute, isAdminRoute, proyectoId, proyecto } = useNavContext();
+  const {
+    ejeId,
+    eje,
+    isContextoRoute,
+    isSeguimientoRoute,
+    isSeguimientoTareasRoute,
+    isAdminRoute,
+    proyectoId,
+    proyecto,
+  } = useNavContext();
   const { user, logout } = useSession();
 
   const crumbs = [];
   if (isContextoRoute) {
     crumbs.push({ label: "Contexto institucional", to: null });
+  } else if (isSeguimientoTareasRoute) {
+    crumbs.push({ label: "Seguimiento", to: "/seguimiento" });
+    crumbs.push({ label: "Todas las tareas", to: null });
   } else if (isSeguimientoRoute) {
     crumbs.push({ label: "Seguimiento", to: null });
   } else if (isAdminRoute) {
