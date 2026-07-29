@@ -126,8 +126,10 @@ solo una parte esté activa — no se inventan datos para los que no los tienen.
     aislar entornos en una misma base), `migrate.js` + `migrations/` (schema
     versionado, corre solo al boot).
   - `src/nodos.js` — hitos/tareas como árbol de 3 niveles en la tabla
-    `nodos`; la primera vez que se pide una hoja, la copia una única vez
-    desde el Excel — de ahí en más, Postgres manda.
+    `nodos`; `importAllSheets` copia cada hoja a Postgres una única vez, en
+    cuanto llega por el webhook (no al leerla) — de ahí en más, Postgres
+    manda y `GET /api/iniciativas/:num` ya no depende del Excel en memoria
+    salvo que Postgres mismo falle.
   - `src/session.js`, `src/routes/session.js` — sesión por cookie, sin
     contraseña; el primer usuario que entra en una base nueva queda
     `administrador` automáticamente.
@@ -312,9 +314,10 @@ Equipo edita el Gantt en SharePoint (como siempre)
     y también reenvía cada 5 min como respaldo (por si el watch se pierde
     un evento, ej. el Mac estaba dormido)
   → POST a /api/webhook/refresh con el archivo en el body (+ secreto compartido)
-  → backend recalcula los datos en memoria (y, en /app/ y /dev/, los copia
-    a Postgres la primera vez que se pide cada hoja)
-  → GET /api/iniciativas/:num sirve los datos ya frescos al frontend
+  → backend recalcula los datos en memoria y, en /app/ y /dev/, importa a
+    Postgres ahí mismo cada hoja que todavía no existía (importAllSheets)
+  → GET /api/iniciativas/:num lee solo de Postgres — el Excel en memoria
+    queda como resguardo únicamente si Postgres mismo falla
 ```
 
 El backend nunca descarga nada por su cuenta — solo recibe lo que le

@@ -72,11 +72,25 @@ test("una hoja recién refrescada por webhook se sirve desde Postgres y no se du
   assert.equal(rows[0].n, 1);
 });
 
-test("una hoja sin filas de datos no queda editable (nada que importar a Postgres, se sirve desde el Excel en memoria)", async () => {
+test("una hoja sin filas de datos responde 404 (nada que importar, no es un caso de Postgres caído)", async () => {
   await pushToWebhook("SHEET_EMPTY", []); // solo encabezado, sin filas
 
-  const res = await request(app).get("/api/iniciativas/SHEET_EMPTY").expect(200);
-  assert.equal(res.body.editable, false);
-  assert.equal(res.body.source, "power-automate");
-  assert.deepEqual(res.body.tree, []);
+  await request(app).get("/api/iniciativas/SHEET_EMPTY").expect(404);
+});
+
+test("si Postgres falla al leer, se sirve el Excel en memoria como resguardo (degradado, no editable)", async () => {
+  await pushToWebhook("SHEET_FALLBACK", [{ Nivel: 1, Tipo: "Tarea", Nombre: "Línea 1" }]);
+
+  const originalQuery = pool.query.bind(pool);
+  pool.query = async () => {
+    throw new Error("simulado: Postgres no disponible");
+  };
+  try {
+    const res = await request(app).get("/api/iniciativas/SHEET_FALLBACK").expect(200);
+    assert.equal(res.body.editable, false);
+    assert.equal(res.body.source, "power-automate");
+    assert.equal(res.body.tree[0].nombre, "Línea 1");
+  } finally {
+    pool.query = originalQuery;
+  }
 });
