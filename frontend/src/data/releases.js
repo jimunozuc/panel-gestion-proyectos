@@ -1,7 +1,7 @@
 export const RELEASES = [
   {
     version: "MVP 3.1",
-    status: "en-curso",
+    status: "hecho",
     items: [
       "Se puede designar de antemano a personas concretas para que queden como administrador apenas inicien sesión por primera vez, sin depender de ser la primera persona en usar la aplicación.",
       "El rol Lector pasa a ser de solo lectura real: ya no puede agregar, editar ni eliminar hitos ni tareas (antes cualquier persona con sesión iniciada podía hacerlo, sin importar su rol).",
