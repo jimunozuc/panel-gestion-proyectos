@@ -94,7 +94,10 @@ Objetivo (6 Ejes del Plan, solo "Inteligencia digital" habilitado)
 En `/app/` y `/dev/`, el Listado de Hitos permite agregar, editar y borrar
 hitos/tareas — pide identificarse la primera vez (modal "¿Quién eres?"),
 sin contraseña todavía (login institucional real es la Versión 3, pendiente).
-En `/` (consulta) esas mismas vistas son de solo lectura.
+El rol **lector** es de solo lectura de verdad: no ve los botones de
+agregar/editar/eliminar, y el backend rechaza esas escrituras aunque se
+llamen directo a la API. En `/` (consulta) esas mismas vistas son de solo
+lectura para cualquiera, sin login.
 
 Los objetivos deshabilitados y los proyectos sin datos reales todavía se
 muestran (gris, no clickeables) para representar el Plan completo aunque
@@ -212,8 +215,10 @@ Excel (ver `## Origen de datos`) por la misma razón: requiere un registro
 de aplicación más complejo de lo necesario.
 
 ### Versiones futuras
-- Automatizar la carga de Excel a `/app/` y `/dev/` (hoy es un POST manual
-  al webhook, ver `## Origen de datos`).
+- ~~Automatizar la carga de Excel a `/app/` y `/dev/`~~ **hecho en el
+  script** (`PUSH_TARGETS_JSON`, ver `## Origen de datos`) — falta el paso
+  manual de cargar la variable en el `launchd` plist local con los tres
+  destinos reales.
 - Fase de exportación: Postgres → Excel de respaldo diario (una vez que el
   equipo confíe en editar solo desde la app, el watcher se apaga).
 - Ver `## Microservicios` para la dirección de arquitectura a mediano plazo.
@@ -241,6 +246,37 @@ ejemplo concreto de la tensión actual entre "microservicios" como objetivo
 y "un plan gratuito de Render" como restricción real — ver la tabla de
 Azure más abajo para cómo se vería esto en un entorno productivo real, sin
 esa restricción.
+
+## Azure — comparativa si se migra desde Render
+
+No es una migración planeada todavía (falta que el usuario cree la
+suscripción — ver `[[project-write-back-exploration]]`), pero queda
+documentado acá para no perder el análisis. Mapeo pieza a pieza de lo que
+hoy corre en `/app/`:
+
+| Hoy (Render + GitHub Pages) | Equivalente en Azure | Por qué / qué cambia |
+|---|---|---|
+| GitHub Pages (frontend estático, 3 sub-rutas) | **Azure Static Web Apps** | Integración nativa con GitHub Actions (reemplaza el paso de deploy, no el workflow completo); el modelo de "entornos de preview" de SWA no calza 1:1 con nuestras 3 sub-rutas fijas (`/`, `/app/`, `/dev/`) — hay que rediseñar esa parte, no es un swap directo. |
+| Render Web Service (`Node`, buildpack) | **Azure Container Apps** (recomendado) o Azure App Service (Linux/Node) | `backend/Dockerfile` y `frontend/Dockerfile` ya existen y ya se usan en `docker-compose.yml` local — Container Apps los consume tal cual, sin empaquetado nuevo. App Service es el lift-and-shift más literal (sin Docker, como Render hoy) pero encaja peor con la dirección a microservicios. |
+| Postgres compartida por schema (`DB_SCHEMA=app`/`public`, límite del plan free de Render) | **Azure Database for PostgreSQL – Flexible Server** | Elimina la razón original del hack de schema: un Flexible Server soporta varias bases reales sin costo extra por base. Se puede mantener el aislamiento por schema (más barato, un solo server) o pasar a bases separadas por entorno — ya no es una restricción de plan, es una decisión de diseño. |
+| Cold starts en plan free | Container Apps consumption plan también escala a cero por defecto | El problema no lo resuelve "cambiarse a Azure" por sí solo — hay que elegir explícitamente un plan con mínimo de instancias activas si el cold start molesta, en cualquiera de las dos nubes. |
+| Push manual del Excel al webhook (`POST /api/webhook/refresh`) | Azure Function (timer trigger) o Logic App, si algún día se resuelve el consentimiento de Graph API | Azure no destraba por sí solo el bloqueo real (el tenant UC exige sesión Microsoft incluso con links "cualquiera con el vínculo" — ver `## Origen de datos`); solo tiene sentido si ese permiso de Graph API se gestiona aparte con TI. Mientras tanto, automatizar el POST actual (ver más abajo) no depende de estar en Azure. |
+| Login "¿Quién eres?" (pendiente CAS/Entra ID) | Azure AD / Entra ID App Registration + Easy Auth de App Service/Container Apps | Si el proveedor final es Entra ID (probable, mismo ecosistema Microsoft que SharePoint/OneDrive), alojar el backend en Azure acorta ese trabajo de integración vs. hacerlo desde Render — pero sigue bloqueado en lo mismo: falta la URL/tenant que solo puede dar TI UC. |
+
+**Costo:** hoy el stack corre a costo cero (Render free + GitHub Pages
+free), a cambio de las restricciones de arriba. El único ítem nuevo que
+tendría costo real en Azure es la base de datos (Flexible Server Burstable,
+gama baja) — confirmar primero si la Postgres compartida actual sigue
+siendo free tier de Render o si ya se pagó para evitar el límite de una
+sola base, para comparar manzanas con manzanas.
+
+**Cuándo tendría sentido moverse:** no es urgente hoy. Se vuelve una
+decisión real cuando pase alguna de estas tres cosas: (1) el hack de schema
+compartido en una sola Postgres empieza a doler de verdad, (2) el primer
+corte de microservicios de la sección anterior efectivamente se hace —
+Container Apps encaja mejor que crear N servicios Render sueltos para eso
+— o (3) la universidad ya tiene tenant/suscripción Azure activos, lo que
+abarataría además la integración de login institucional.
 
 ## Origen de datos
 
@@ -271,10 +307,16 @@ envían. El script corre como agente de `launchd`
 (`~/Library/LaunchAgents/com.panelgestion.excelwatcher.plist`, fuera del
 repo) y arranca solo al iniciar sesión en el Mac — por lo que los datos
 solo se actualizan mientras esa máquina esté encendida y con OneDrive
-sincronizando. **Hoy el watcher solo empuja a `panel-gestion-proyectos-backend`**
-(el de `/`); llevarle datos reales a `/app/` o `/dev/` es, por ahora, un
-`POST /api/webhook/refresh` manual a la URL de ese backend — automatizarlo
-para los tres backends a la vez queda como pendiente (ver Roadmap).
+sincronizando.
+
+**Empuje a los tres backends a la vez:** `scripts/watch-and-push.mjs` acepta
+una variable `PUSH_TARGETS_JSON` con un array de destinos
+(`[{"name":"...","url":"...","secret":"..."}]`), uno por backend, cada uno
+con su propio `REFRESH_SECRET` (son distintos entre servicios). Si no se
+setea, sigue funcionando como antes con un solo destino
+(`BACKEND_URL`/`REFRESH_SECRET`) — compatible con el setup actual sin tocar
+nada. Falta el paso manual de agregar esa variable al plist de `launchd`
+con los tres pares URL/secreto reales.
 
 **Estructura del Excel:** una hoja por iniciativa/proyecto. El backend
 soporta dos formatos (`backend/src/parseWorkbook.js`): el Gantt real (con
@@ -306,6 +348,10 @@ Ver el runbook completo usado para `/dev/` y `/app/` — resumen:
 3. **Env vars** en el web service: `DATABASE_URL`, `DB_SCHEMA` (si aplica),
    `CORS_ORIGIN` (el origen exacto de GitHub Pages, sin path), `NODE_ENV=production`,
    `COOKIE_SECRET` (random), `REFRESH_SECRET` (random, para el webhook).
+   Opcional: `BOOTSTRAP_ADMIN_NAMES` (nombres separados por coma) para que
+   personas puntuales queden `administrador` automáticamente en cada login
+   en ese entorno, sin depender de "ser el primer usuario" ni de tocar la
+   base a mano.
 4. En GitHub: variable de Actions `VITE_API_URL_<ENTORNO>` con la URL del
    servicio nuevo, y el build correspondiente en
    `.github/workflows/deploy-pages.yml` apuntando a esa variable.
