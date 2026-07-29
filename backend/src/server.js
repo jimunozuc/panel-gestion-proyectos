@@ -5,7 +5,9 @@ import { getData, refreshFromUpload } from "./dataSource.js";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+// Restringido al origen real de GitHub Pages vía CORS_ORIGIN; sin esa env
+// var, solo acepta localhost (evita quedar abierto a cualquier origen).
+app.use(cors({ origin: process.env.CORS_ORIGIN || /^http:\/\/localhost:\d+$/ }));
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
