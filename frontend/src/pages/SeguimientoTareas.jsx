@@ -22,19 +22,38 @@ const SORTABLE = {
   avance: (n) => Number(n.avance) || 0,
   inicio: (n) => n.inicio || "",
   responsable: (n) => (n.responsable || "").toLocaleLowerCase("es-CL"),
+  proyecto: (n) => (n.proyectoLabel || "").toLocaleLowerCase("es-CL"),
+  linea: (n) => (n.line || "").toLocaleLowerCase("es-CL"),
 };
+
+const TEXT_SORT_COLS = new Set(["responsable", "proyecto", "linea"]);
+
+const FILTER_DEFAULTS = { tipo: "todos", proyectoId: "todos", estado: "todos", responsable: "todos" };
 
 export default function SeguimientoTareas() {
   const entries = useMemo(() => getTodosLosProyectosReales(), []);
   const sheetIds = useMemo(() => entries.map((e) => e.proyecto.sheetId), [entries]);
   const { loading, dataById } = useMultipleIniciativaData(sheetIds);
 
-  const [tipo, setTipo] = useState("todos");
-  const [proyectoId, setProyectoId] = useState("todos");
-  const [estado, setEstado] = useState("todos");
-  const [responsable, setResponsable] = useState("todos");
+  const [tipo, setTipo] = useState(FILTER_DEFAULTS.tipo);
+  const [proyectoId, setProyectoId] = useState(FILTER_DEFAULTS.proyectoId);
+  const [estado, setEstado] = useState(FILTER_DEFAULTS.estado);
+  const [responsable, setResponsable] = useState(FILTER_DEFAULTS.responsable);
   const [sortBy, setSortBy] = useState("inicio");
   const [sortDir, setSortDir] = useState("asc");
+
+  const filtersChanged =
+    tipo !== FILTER_DEFAULTS.tipo ||
+    proyectoId !== FILTER_DEFAULTS.proyectoId ||
+    estado !== FILTER_DEFAULTS.estado ||
+    responsable !== FILTER_DEFAULTS.responsable;
+
+  const resetFilters = () => {
+    setTipo(FILTER_DEFAULTS.tipo);
+    setProyectoId(FILTER_DEFAULTS.proyectoId);
+    setEstado(FILTER_DEFAULTS.estado);
+    setResponsable(FILTER_DEFAULTS.responsable);
+  };
 
   const allLeaves = useMemo(() => {
     return entries.flatMap((e) => {
@@ -86,7 +105,7 @@ export default function SeguimientoTareas() {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortBy(col);
-      setSortDir(col === "responsable" ? "asc" : "desc");
+      setSortDir(TEXT_SORT_COLS.has(col) ? "asc" : "desc");
     }
   };
 
@@ -158,6 +177,15 @@ export default function SeguimientoTareas() {
               </select>
             </label>
 
+            {filtersChanged && (
+              <button type="button" className="st-reset-btn" onClick={resetFilters}>
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  filter_alt_off
+                </span>
+                Restablecer filtros
+              </button>
+            )}
+
             <span className="st-count">
               {sorted.length} {sorted.length === 1 ? "resultado" : "resultados"}
             </span>
@@ -169,8 +197,22 @@ export default function SeguimientoTareas() {
                 <tr>
                   <th>Nombre</th>
                   <th>Tipo</th>
-                  <th>Proyecto</th>
-                  <th>Línea</th>
+                  <th>
+                    <button type="button" className="st-sort-btn" onClick={() => toggleSort("proyecto")}>
+                      Proyecto
+                      <span className="material-symbols-rounded" aria-hidden="true">
+                        {sortIcon("proyecto")}
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className="st-sort-btn" onClick={() => toggleSort("linea")}>
+                      Línea
+                      <span className="material-symbols-rounded" aria-hidden="true">
+                        {sortIcon("linea")}
+                      </span>
+                    </button>
+                  </th>
                   <th>
                     <button type="button" className="st-sort-btn" onClick={() => toggleSort("responsable")}>
                       Responsable
