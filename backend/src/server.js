@@ -12,6 +12,8 @@ import { importSheetIfEmpty, loadSheetFromDb } from "./nodos.js";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+export { app };
+
 // En producción, CORS_ORIGIN debe ser la URL exacta del frontend. En local
 // se acepta cualquier puerto de localhost (Vite y las previews cambian de
 // puerto seguido) para no tener que fijarlo a mano en cada sesión.
@@ -113,4 +115,8 @@ async function start() {
   });
 }
 
-start();
+// Guard de entrypoint: al importar `app` desde un test (supertest) no
+// queremos levantar el puerto ni correr migraciones de nuevo.
+if (import.meta.url === `file://${process.argv[1]}`) {
+  start();
+}

@@ -175,6 +175,21 @@ docker compose up --build
 Backend en `http://localhost:3001` (con su propia Postgres en el mismo
 `docker-compose.yml`), frontend en `http://localhost:8080`.
 
+**Tests del backend:**
+
+```bash
+createdb panel_test   # una vez; base descartable, nunca la de desarrollo
+cd backend
+TEST_DATABASE_URL=postgres://localhost/panel_test npm test
+```
+
+`node --test` corre `parseWorkbook.test.js` (sin DB) y los tests de
+`nodos.js`/`routes/nodos.js` (aplican migraciones y truncan las tablas antes
+de cada test). Sin `TEST_DATABASE_URL` seteada, esos archivos fallan rápido
+en vez de correr contra `DATABASE_URL` real — nunca apunten esta variable a
+la base de datos de desarrollo/producción. CI (`.github/workflows/backend-ci.yml`)
+corre lo mismo contra un Postgres descartable en cada PR.
+
 ## Estado actual
 
 - Navegación de riel fijo + breadcrumb: **hecho**, con colores
