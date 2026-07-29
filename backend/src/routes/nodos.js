@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { pool } from "../db/pool.js";
-import { requireUser } from "../session.js";
+import { requireEditor } from "../session.js";
 import { isoDate } from "../nodos.js";
 
 export const nodosRouter = Router();
@@ -15,7 +15,7 @@ async function logAudit(client, { userId, userNombre, entityId, sheetId, campo, 
   );
 }
 
-nodosRouter.post("/iniciativas/:num/nodos", requireUser, async (req, res) => {
+nodosRouter.post("/iniciativas/:num/nodos", requireEditor, async (req, res) => {
   const sheetId = req.params.num;
   const { parentId = null, nombre, tipo = "Tarea", responsable = "", inicio = null, fin = null, avance = 0 } = req.body || {};
   if (!nombre || !String(nombre).trim()) {
@@ -67,7 +67,7 @@ nodosRouter.post("/iniciativas/:num/nodos", requireUser, async (req, res) => {
   }
 });
 
-nodosRouter.patch("/nodos/:id", requireUser, async (req, res) => {
+nodosRouter.patch("/nodos/:id", requireEditor, async (req, res) => {
   const id = Number(req.params.id);
   let client;
   try {
@@ -130,7 +130,7 @@ nodosRouter.patch("/nodos/:id", requireUser, async (req, res) => {
   }
 });
 
-nodosRouter.delete("/nodos/:id", requireUser, async (req, res) => {
+nodosRouter.delete("/nodos/:id", requireEditor, async (req, res) => {
   const id = Number(req.params.id);
   let client;
   try {

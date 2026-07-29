@@ -1,11 +1,24 @@
 export const RELEASES = [
   {
+    version: "MVP 3.1",
+    status: "hecho",
+    items: [
+      "Se puede designar de antemano a personas concretas para que queden como administrador apenas inicien sesión por primera vez, sin depender de ser la primera persona en usar la aplicación.",
+      "El rol Lector pasa a ser de solo lectura real: ya no puede agregar, editar ni eliminar hitos ni tareas (antes cualquier persona con sesión iniciada podía hacerlo, sin importar su rol).",
+      "La actualización automática del archivo de seguimiento ahora llega a los tres sitios (consulta, producción y pruebas) al mismo tiempo, en vez de cargarse a mano uno por uno.",
+      "La vista \"Todas las tareas\" de Seguimiento suma orden por proyecto y por línea, un botón para limpiar todos los filtros de una vez, y columnas de ancho ajustable.",
+    ],
+  },
+  {
     version: "MVP 3.0",
     status: "hecho",
     items: [
       "Ahora se puede editar el panel directamente desde la aplicación — agregar, modificar y quitar hitos y tareas — sin depender de que alguien actualice el Excel. Cada cambio queda registrado en una bitácora con quién lo hizo y cuándo.",
       "Nueva pantalla de Administración: usuarios y sus roles, bitácora completa de cambios, y un formulario para solicitar que se agregue un proyecto nuevo al Plan.",
       "La aplicación con edición se publicó como entorno productivo propio (/app/), separado del panel de solo consulta que el equipo usa hoy — para poder mejorarla sin arriesgar la versión estable.",
+      "Nueva página \"¿Cómo funciona?\" con una guía visual de los tres entornos de la aplicación (consulta, producción y pruebas) y cuándo usar cada uno.",
+      "La ficha de cada proyecto muestra su definición oficial en un popup junto al nombre, sin salir de la vista.",
+      "Nueva vista \"Todas las tareas\" dentro de Seguimiento (botón \"Ver más\"): listado completo de hitos y actividades de todos los proyectos reales, con filtros por proyecto, estado y responsable.",
     ],
   },
   {

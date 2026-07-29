@@ -2365,6 +2365,35 @@ body {
   box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
 }
 
+.st-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+}
+
+.st-reset-btn:hover {
+  background: #f8fafc;
+  border-color: var(--uc-azul);
+  color: var(--uc-azul);
+}
+
+.st-reset-btn .material-symbols-rounded {
+  font-size: 16px;
+}
+
+.st-reset-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
 .st-count {
   margin-left: auto;
   font-size: 0.8rem;
@@ -2383,6 +2412,7 @@ body {
   border-collapse: collapse;
   font-size: 0.85rem;
   min-width: 900px;
+  table-layout: fixed;
 }
 
 .st-table th,
@@ -2391,6 +2421,27 @@ body {
   text-align: left;
   border-bottom: 1px solid #eef1f7;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.st-th-resizable {
+  position: relative;
+}
+
+.st-col-resize {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.st-col-resize:hover,
+.st-col-resize:active {
+  background: rgba(1, 118, 222, 0.35);
 }
 
 .st-table thead th {

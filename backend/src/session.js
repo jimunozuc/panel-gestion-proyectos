@@ -49,6 +49,20 @@ export function requireUser(req, res, next) {
   next();
 }
 
+// A diferencia de requireUser, excluye a los lectores: el rol lector es
+// deliberadamente de solo lectura, no puede crear/editar/eliminar nodos.
+export function requireEditor(req, res, next) {
+  if (!req.user) {
+    res.status(401).json({ error: "Se requiere iniciar sesión" });
+    return;
+  }
+  if (req.user.rol === "lector") {
+    res.status(403).json({ error: "Tu rol (lector) no permite editar" });
+    return;
+  }
+  next();
+}
+
 export function requireAdmin(req, res, next) {
   if (!req.user || req.user.rol !== "administrador") {
     res.status(403).json({ error: "Requiere rol administrador" });

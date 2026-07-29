@@ -21,13 +21,19 @@ const isLeaf = (n) => n.kind === "act" || (n.kind === "init" && !n.activities?.l
 
 export default function ListadoHitos() {
   const { sheetId } = useOutletContext();
-  const { ensureSession } = useSession();
+  const { user, ensureSession } = useSession();
   const { loading, error, data, reload } = useIniciativaData(sheetId);
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+
+  // Antes de identificarse no sabemos el rol todavía (optimista: se muestran
+  // los controles y, si resulta ser lector, el backend lo rechaza al
+  // confirmar sesión). Una vez logueado, un lector no debe ver ni siquiera
+  // el botón — no hay nada que su login pueda desbloquear.
+  const canEdit = !user || user.rol !== "lector";
 
   const items = useMemo(() => {
     if (!data) return [];
@@ -81,7 +87,7 @@ export default function ListadoHitos() {
             <p className="data-updated-at">
               Datos actualizados: {new Date(data.updatedAt).toLocaleString("es-CL")}
             </p>
-            {data.editable && (
+            {data.editable && canEdit && (
               <button type="button" className="hitos-add-btn" onClick={() => setAdding(true)}>
                 <span className="material-symbols-rounded" aria-hidden="true">
                   add
@@ -131,7 +137,7 @@ export default function ListadoHitos() {
                         >
                           {status.label}
                         </span>
-                        {data.editable && (
+                        {data.editable && canEdit && (
                           <span className="hito-actions">
                             <button
                               type="button"
