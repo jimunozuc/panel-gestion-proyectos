@@ -24,16 +24,25 @@ async function insertLevel(client, sheetId, nodes, parentId, nivel) {
 // La primera lectura de una hoja copia su árbol completo a Postgres. De ahí
 // en adelante esta tabla manda para esa hoja: el webhook de Excel sigue
 // refrescando el cache en memoria, pero esta función ya no vuelve a
-// importar (ver el "if (rows.length) return false"), así que una hoja
-// migrada nunca pierde ediciones manuales por un refresh posterior.
+// importar, así que una hoja migrada nunca pierde ediciones manuales por un
+// refresh posterior.
+//
+// El check es contra `imported_sheets`, no contra "¿nodos tiene filas hoy?"
+// — si fuera esto último, borrar todos los nodos de una hoja hasta dejarla
+// en cero haría que el próximo GET la reimportara sola desde el Excel,
+// devolviendo datos que alguien borró a propósito.
 export async function importSheetIfEmpty(sheetId, sheet) {
-  const { rows } = await pool.query("SELECT 1 FROM nodos WHERE sheet_id = $1 LIMIT 1", [sheetId]);
+  const { rows } = await pool.query("SELECT 1 FROM imported_sheets WHERE sheet_id = $1", [sheetId]);
   if (rows.length) return false;
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     await insertLevel(client, sheetId, sheet.tree, null, 1);
+    await client.query(
+      "INSERT INTO imported_sheets (sheet_id) VALUES ($1) ON CONFLICT (sheet_id) DO NOTHING",
+      [sheetId]
+    );
     await client.query("COMMIT");
   } catch (err) {
     await client.query("ROLLBACK");

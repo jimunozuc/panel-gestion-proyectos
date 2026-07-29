@@ -6,6 +6,7 @@ import { isoDate } from "../nodos.js";
 export const nodosRouter = Router();
 
 const EDITABLE_FIELDS = ["nombre", "tipo", "responsable", "inicio", "fin", "avance"];
+const VALID_TIPOS = new Set(["Hito", "Tarea"]);
 
 async function logAudit(client, { userId, userNombre, entityId, sheetId, campo, anterior, nuevo, accion }) {
   await client.query(
@@ -22,6 +23,10 @@ nodosRouter.post("/iniciativas/:num/nodos", requireEditor, async (req, res) => {
     res.status(400).json({ error: "Falta el nombre" });
     return;
   }
+  if (!VALID_TIPOS.has(tipo)) {
+    res.status(400).json({ error: 'Tipo inválido: debe ser "Hito" o "Tarea"' });
+    return;
+  }
 
   let client;
   try {
@@ -30,8 +35,12 @@ nodosRouter.post("/iniciativas/:num/nodos", requireEditor, async (req, res) => {
 
     let nivel = 1;
     if (parentId) {
-      const { rows } = await client.query("SELECT nivel FROM nodos WHERE id = $1", [parentId]);
-      if (!rows[0]) throw new Error("El nodo padre no existe");
+      const { rows } = await client.query(
+        "SELECT nivel FROM nodos WHERE id = $1 AND sheet_id = $2",
+        [parentId, sheetId]
+      );
+      if (!rows[0]) throw new Error("El nodo padre no existe o no pertenece a esta hoja");
+      if (rows[0].nivel >= 3) throw new Error("No se pueden agregar hijos a un nodo de nivel 3");
       nivel = rows[0].nivel + 1;
     }
 
@@ -91,6 +100,11 @@ nodosRouter.patch("/nodos/:id", requireEditor, async (req, res) => {
       const anteriorRaw = current[field];
       const anterior = field === "inicio" || field === "fin" ? isoDate(anteriorRaw) : anteriorRaw;
       const nuevo = req.body[field] === "" ? null : req.body[field];
+      if (field === "tipo" && nuevo != null && !VALID_TIPOS.has(nuevo)) {
+        await client.query("ROLLBACK");
+        res.status(400).json({ error: 'Tipo inválido: debe ser "Hito" o "Tarea"' });
+        return;
+      }
       if (String(anterior ?? "") === String(nuevo ?? "")) continue;
       changes.push({ campo: field, anterior, nuevo });
       setClauses.push(`${field} = $${i++}`);
