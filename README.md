@@ -39,7 +39,8 @@ flowchart TB
     Sync --> Watcher["scripts/watch-and-push.mjs\n(agente launchd)"]
 
     Watcher -->|"POST /api/webhook/refresh"| BackendViejo["panel-gestion-proyectos-backend\nsolo lectura desde Excel"]
-    Watcher -.->|"push manual hoy,\nautomatizar pendiente"| BackendPrd
+    Watcher -->|"POST /api/webhook/refresh"| IngestaPrd["panel-gestion-proyectos-prd-ingesta\nsolo ingesta, sin lectura"]
+    Watcher -->|"POST /api/webhook/refresh"| IngestaDev["panel-gestion-proyectos-dev-ingesta\nsolo ingesta, sin lectura"]
 
     subgraph RenderPG["Postgres compartida (Render, plan free = 1 sola base)"]
       direction LR
@@ -47,8 +48,11 @@ flowchart TB
       SchemaPublic[("schema: public")]
     end
 
-    BackendPrd["panel-gestion-proyectos-prd\nsesión, roles, bitácora"] --> SchemaApp
-    BackendDev["panel-gestion-proyectos\nsesión, roles, bitácora"] --> SchemaPublic
+    IngestaPrd --> SchemaApp
+    IngestaDev --> SchemaPublic
+
+    BackendPrd["panel-gestion-proyectos-prd\nsesión, roles, bitácora"] -->|"lee"| SchemaApp
+    BackendDev["panel-gestion-proyectos\nsesión, roles, bitácora"] -->|"lee"| SchemaPublic
 
     ConsultaV1(["rama consulta-v1"]) --> SitioRaiz["/\nproducción consulta"]
     Main(["rama main"]) --> SitioApp["/app/\nproducción app nueva"]
@@ -63,11 +67,14 @@ flowchart TB
     Usuario --> SitioDev
 ```
 
-El backend nunca va a buscar el Excel por su cuenta: solo recibe lo que el
-watcher (u otro POST manual) le envía. `/app/` y `/dev/` no dependen del
-Excel para funcionar día a día — una vez que un hito vive en Postgres, se
-edita ahí — pero sí lo usan para la carga inicial de cada hoja. Ver
-`## Origen de datos` más abajo para el detalle completo.
+El watcher empuja el Excel a 3 servicios — nunca al revés, ningún backend va
+a buscarlo por su cuenta. `panel-gestion-proyectos-backend` (`/`) sigue
+sirviendo solo desde Excel en memoria, sin Postgres. `/app/` y `/dev/` ya no
+reciben el Excel directamente: cada uno de sus servicios de ingesta
+(`*-prd-ingesta`, `*-dev-ingesta`) lo importa a su propio schema de Postgres,
+y el backend de API correspondiente solo lee de ahí — nunca depende del
+Excel salvo que Postgres mismo falle. Ver `## Origen de datos` más abajo
+para el detalle completo.
 
 ## Navegación
 
@@ -120,16 +127,15 @@ solo una parte esté activa — no se inventan datos para los que no los tienen.
     (objetivo → iniciativas) y nivel 3 (ficha del proyecto con pestañas).
   - `src/pages/Admin.jsx` — usuarios/roles, bitácora, solicitud de proyecto.
 - `backend/` — Node.js + Express.
-  - `src/ingestaServer.js` — **entrypoint nuevo** para separar la ingesta de
-    Excel (webhook + parseo + import a Postgres) como servicio Render aparte
-    (`npm run start:ingesta`), primer corte de la dirección de
-    microservicios (ver `## Microservicios`). Mismo código/Dockerfile que la
-    API, distinto Docker Command. De momento coexiste con el webhook que
-    todavía tiene `server.js` — el corte real (sacarlo de ahí) es un paso
-    aparte, una vez que los servicios de ingesta estén desplegados y
-    verificados en Render.
-  - `src/parseWorkbook.js` — parsea el Excel real recibido por webhook, **por
-    nombre de columna**, no por posición.
+  - `src/ingestaServer.js` — servicio Render aparte para la ingesta de Excel
+    (webhook + parseo + import a Postgres), desplegado como
+    `panel-gestion-proyectos-{dev,prd}-ingesta` (mismo código/Dockerfile que
+    la API, distinto Docker Command `npm run start:ingesta`) — primer corte
+    de la dirección de microservicios (ver `## Microservicios`). `server.js`
+    ya no tiene webhook propio: la API depende 100% de Postgres para leer,
+    sin ruta de escritura.
+  - `src/parseWorkbook.js` — parsea el Excel real recibido por el webhook de
+    ingesta, **por nombre de columna**, no por posición.
   - `src/db/` — `pool.js` (conexión Postgres, `DB_SCHEMA` opcional para
     aislar entornos en una misma base), `migrate.js` + `migrations/` (schema
     versionado, corre solo al boot).
@@ -251,14 +257,14 @@ de aplicación más complejo de lo necesario.
 ## Microservicios
 
 Dirección de arquitectura confirmada: **el desarrollo futuro va hacia
-microservicios**, no hacia un monolito más grande. Hoy el backend es un
-único servicio Express con varias responsabilidades (sesión, hitos/nodos,
-administración, ingesta de Excel) — funciona porque el volumen es bajo,
-pero cada responsabilidad nueva debería evaluarse como candidata a service
-aparte en vez de sumarse al mismo proceso. Candidatos naturales para el
-primer corte, cuando se aborde:
+microservicios**, no hacia un monolito más grande. Primer corte ya hecho:
+**ingesta de Excel** (parseo + webhook + import a Postgres) es hoy un
+servicio Render aparte (`src/ingestaServer.js`, desplegado como
+`panel-gestion-proyectos-{dev,prd}-ingesta`), sin código de ruteo por
+entorno — mismo patrón que los 2 backends de API (mismo código, distinto
+`DATABASE_URL`/`DB_SCHEMA`, distinto Docker Command). Candidatos para el
+próximo corte, cuando se aborde:
 
-- **Ingesta de Excel** (parseo + webhook) separada del API de lectura/escritura.
 - **Sesión/usuarios** separado de hitos/nodos.
 - **Administración/auditoría** como su propio servicio de solo lectura.
 
@@ -321,11 +327,15 @@ Equipo edita el Gantt en SharePoint (como siempre)
   → scripts/watch-and-push.mjs detecta el cambio (fs.watch + debounce)
     y también reenvía cada 5 min como respaldo (por si el watch se pierde
     un evento, ej. el Mac estaba dormido)
-  → POST a /api/webhook/refresh con el archivo en el body (+ secreto compartido)
-  → backend recalcula los datos en memoria y, en /app/ y /dev/, importa a
-    Postgres ahí mismo cada hoja que todavía no existía (importAllSheets)
-  → GET /api/iniciativas/:num lee solo de Postgres — el Excel en memoria
-    queda como resguardo únicamente si Postgres mismo falla
+  → POST a /api/webhook/refresh (+ secreto compartido) a 3 destinos:
+    - panel-gestion-proyectos-backend (/, recalcula en memoria, sin Postgres)
+    - panel-gestion-proyectos-dev-ingesta y -prd-ingesta (/dev/ y /app/,
+      cada uno importa a su propio schema de Postgres — importAllSheets,
+      una vez por hoja nueva)
+  → GET /api/iniciativas/:num en /app/ y /dev/ lee solo de Postgres — el
+    Excel en memoria queda como resguardo únicamente si Postgres mismo
+    falla (esos backends ya no reciben el Excel, no tienen otra forma de
+    poblar ese cache que no sea el archivo de ejemplo bundled)
 ```
 
 El backend nunca descarga nada por su cuenta — solo recibe lo que le
@@ -335,14 +345,14 @@ repo) y arranca solo al iniciar sesión en el Mac — por lo que los datos
 solo se actualizan mientras esa máquina esté encendida y con OneDrive
 sincronizando.
 
-**Empuje a los tres backends a la vez:** `scripts/watch-and-push.mjs` acepta
+**Empuje a varios destinos a la vez:** `scripts/watch-and-push.mjs` acepta
 una variable `PUSH_TARGETS_JSON` con un array de destinos
-(`[{"name":"...","url":"...","secret":"..."}]`), uno por backend, cada uno
+(`[{"name":"...","url":"...","secret":"..."}]`), uno por servicio, cada uno
 con su propio `REFRESH_SECRET` (son distintos entre servicios). Si no se
 setea, sigue funcionando como antes con un solo destino
-(`BACKEND_URL`/`REFRESH_SECRET`) — compatible con el setup actual sin tocar
-nada. Falta el paso manual de agregar esa variable al plist de `launchd`
-con los tres pares URL/secreto reales.
+(`BACKEND_URL`/`REFRESH_SECRET`). Hoy son 3: el backend viejo de `/` y los 2
+servicios de ingesta de `/app/`/`/dev/` — los backends de API de `/app/` y
+`/dev/` ya no son destino directo, solo leen Postgres.
 
 **Estructura del Excel:** una hoja por iniciativa/proyecto. El backend
 soporta dos formatos (`backend/src/parseWorkbook.js`): el Gantt real (con
@@ -354,9 +364,11 @@ Hoy hay tres hojas reales conectadas — `P6.1.1`, `P6.1.2` y `P6.1.3` (ver
 `proyectos[]` en `frontend/src/data/plan.js`).
 
 Mientras un backend no reciba ningún archivo (recién desplegado, o antes del
-primer push), sirve `backend/data/panel_iniciativas.xlsx` como respaldo
-local — ese archivo de ejemplo solo tiene el formato simple viejo (6.0/6.1/6.2),
-no las hojas reales P6.1.x.
+primer push) — o, en `/app/`/`/dev/`, cada vez que Postgres falla, ya que
+esos dos nunca vuelven a recibir el Excel directamente — sirve
+`backend/data/panel_iniciativas.xlsx` como respaldo local. Ese archivo de
+ejemplo solo tiene el formato simple viejo (6.0/6.1/6.2), no las hojas
+reales P6.1.x.
 
 ### Pasos para desplegar un backend nuevo en Render
 
