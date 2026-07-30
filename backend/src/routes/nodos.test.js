@@ -1,12 +1,30 @@
 // Importar testUtils/db ANTES que server.js: fija DATABASE_URL=TEST_DATABASE_URL
 // antes de que pool.js (importado transitivamente por server.js) abra la conexión.
 import { pool, setupTestDb, resetDb } from "../testUtils/db.js";
-import { test, before, beforeEach } from "node:test";
+import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
 import { app } from "../server.js";
+import { app as sesionApp } from "../sesionServer.js";
+
+// login/usuarios ahora los maneja sesionServer.js — server.js le delega esa
+// lógica por HTTP (ver sesionClient.js). Para el test, arrancamos ese
+// servicio en un puerto efímero y apuntamos SESION_URL ahí: mismo patrón que
+// webhookToApi.test.js (2 apps Express reales compartiendo un solo pool),
+// no un mock.
+let sesionServerHandle;
 
 before(setupTestDb);
+before(
+  () =>
+    new Promise((resolve) => {
+      sesionServerHandle = sesionApp.listen(0, () => {
+        process.env.SESION_URL = `http://localhost:${sesionServerHandle.address().port}`;
+        resolve();
+      });
+    })
+);
+after(() => new Promise((resolve) => sesionServerHandle.close(resolve)));
 beforeEach(resetDb);
 
 // Login sin contraseña: el primer nombre que entra en la base (limpia por
@@ -104,4 +122,45 @@ test("DELETE elimina el nodo", async () => {
 
   const { rows } = await pool.query("SELECT * FROM nodos WHERE id = $1", [created.body.id]);
   assert.equal(rows.length, 0);
+});
+
+test("ver-como: una cuenta habilitada cambia de rol temporalmente y el backend lo aplica de verdad", async () => {
+  process.env.VER_COMO_NOMBRES = "Admin Test";
+  try {
+    const admin = await loginAs("Admin Test");
+    await admin.post("/api/session/ver-como").send({ rol: "lector" }).expect(200);
+
+    const viendo = await admin.get("/api/session").expect(200);
+    assert.equal(viendo.body.user.rol, "lector");
+    assert.equal(viendo.body.user.rolReal, "administrador");
+    assert.equal(viendo.body.user.viendoComo, true);
+
+    await admin
+      .post("/api/iniciativas/SHEET_A/nodos")
+      .send({ nombre: "No debería crearse viendo como lector", tipo: "Tarea" })
+      .expect(403);
+
+    await admin.post("/api/session/ver-como/salir").expect(200);
+    const restaurada = await admin.get("/api/session").expect(200);
+    assert.equal(restaurada.body.user.rol, "administrador");
+    assert.equal(restaurada.body.user.viendoComo, undefined);
+  } finally {
+    delete process.env.VER_COMO_NOMBRES;
+  }
+});
+
+test("ver-como: una cuenta no habilitada no puede usarlo (403)", async () => {
+  const admin = await loginAs("Admin Test"); // sin VER_COMO_NOMBRES seteado, nadie está habilitado
+  await admin.post("/api/session/ver-como").send({ rol: "lector" }).expect(403);
+});
+
+test("ver-como: solo administradores, aunque el nombre esté en VER_COMO_NOMBRES", async () => {
+  process.env.VER_COMO_NOMBRES = "Editor Test";
+  try {
+    await loginAs("Admin Test"); // primer usuario -> administrador, ocupa el cupo
+    const editor = await loginAs("Editor Test"); // segundo usuario -> editor por defecto
+    await editor.post("/api/session/ver-como").send({ rol: "lector" }).expect(403);
+  } finally {
+    delete process.env.VER_COMO_NOMBRES;
+  }
 });

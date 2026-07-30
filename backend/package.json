@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "node --watch --env-file-if-exists=.env src/server.js",
     "dev:ingesta": "node --watch --env-file-if-exists=.env src/ingestaServer.js",
+    "dev:sesion": "node --watch --env-file-if-exists=.env src/sesionServer.js",
     "start": "node src/server.js",
     "start:ingesta": "node src/ingestaServer.js",
+    "start:sesion": "node src/sesionServer.js",
     "test": "node --test --test-concurrency=1",
     "migrate": "node --env-file-if-exists=.env src/db/migrate.js"
   },

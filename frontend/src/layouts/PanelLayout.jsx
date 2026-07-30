@@ -11,6 +11,7 @@ function useNavContext() {
   const isSeguimientoRoute = location.pathname.startsWith("/seguimiento");
   const isSeguimientoTareasRoute = location.pathname === "/seguimiento/tareas";
   const isAdminRoute = location.pathname === "/admin";
+  const isPerfilRoute = location.pathname === "/perfil";
   const proyecto = proyectoId ? findProyecto(proyectoId) : null;
   const ejeId = paramEjeId || proyecto?.eje.id || null;
   const eje = OBJETIVOS.find((o) => o.id === ejeId) || null;
@@ -21,6 +22,7 @@ function useNavContext() {
     isSeguimientoRoute,
     isSeguimientoTareasRoute,
     isAdminRoute,
+    isPerfilRoute,
     proyectoId,
     proyecto,
   };
@@ -34,6 +36,7 @@ export default function PanelLayout() {
     isSeguimientoRoute,
     isSeguimientoTareasRoute,
     isAdminRoute,
+    isPerfilRoute,
     proyectoId,
     proyecto,
   } = useNavContext();
@@ -49,6 +52,8 @@ export default function PanelLayout() {
     crumbs.push({ label: "Seguimiento", to: null });
   } else if (isAdminRoute) {
     crumbs.push({ label: "Administración", to: null });
+  } else if (isPerfilRoute) {
+    crumbs.push({ label: "Mi Perfil", to: null });
   } else if (eje) {
     crumbs.push({ label: eje.label, to: proyectoId ? `/ejes/${eje.id}` : null });
     if (proyectoId && proyecto) {
@@ -120,6 +125,11 @@ export default function PanelLayout() {
                 Salir
               </button>
             </div>
+          )}
+          {user && (
+            <Link to="/perfil" className="nav-rail-footer-link">
+              Mi Perfil
+            </Link>
           )}
           {user?.rol === "administrador" && (
             <Link to="/admin" className="nav-rail-footer-link">

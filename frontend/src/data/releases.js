@@ -1,5 +1,13 @@
 export const RELEASES = [
   {
+    version: "MVP 3.2",
+    status: "hecho",
+    items: [
+      "La actualización automática de datos desde el archivo de seguimiento ahora corre en un servicio propio, separado de la aplicación principal — más robusto, sin afectar el uso normal de la app mientras se actualizan los datos.",
+      "Actualización de seguridad de una librería interna de navegación de la aplicación (sin cambios visibles para quien la usa).",
+    ],
+  },
+  {
     version: "MVP 3.1",
     status: "hecho",
     items: [

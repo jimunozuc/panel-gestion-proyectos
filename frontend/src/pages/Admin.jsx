@@ -131,9 +131,11 @@ export default function Admin() {
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Nombre</th>
+                    <th>Cuenta</th>
                     <th>Rol</th>
                     <th>Desde</th>
+                    <th>Última conexión</th>
+                    <th>Última acción</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -155,11 +157,13 @@ export default function Admin() {
                         </select>
                       </td>
                       <td>{fmtDateTime(u.created_at)}</td>
+                      <td>{fmtDateTime(u.last_login_at)}</td>
+                      <td>{u.last_action ? `${u.last_action} · ${fmtDateTime(u.last_action_at)}` : "—"}</td>
                     </tr>
                   ))}
                   {users.length === 0 && (
                     <tr>
-                      <td colSpan={3}>Todavía no hay usuarios registrados.</td>
+                      <td colSpan={5}>Todavía no hay usuarios registrados.</td>
                     </tr>
                   )}
                 </tbody>

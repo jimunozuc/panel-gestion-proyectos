@@ -144,12 +144,25 @@ solo una parte esté activa — no se inventan datos para los que no los tienen.
     cuanto llega por el webhook (no al leerla) — de ahí en más, Postgres
     manda y `GET /api/iniciativas/:num` ya no depende del Excel en memoria
     salvo que Postgres mismo falle.
-  - `src/session.js`, `src/routes/session.js` — sesión por cookie, sin
-    contraseña; el primer usuario que entra en una base nueva queda
-    `administrador` automáticamente.
+  - `src/sesionServer.js` — servicio Render aparte para usuarios/roles
+    (login, listado, cambio de rol, "última conexión"/"última acción"),
+    desplegado como `panel-gestion-proyectos-{dev,prd}-sesion` — segundo
+    corte de microservicios (ver `## Microservicios`). Deliberadamente
+    puertas adentro: el navegador nunca lo llama directo (los subdominios
+    de Render no comparten cookies entre sí), `server.js` le delega esta
+    lógica por HTTP vía `src/sesionClient.js` y sigue siendo quien
+    emite/lee la cookie de sesión en su propio dominio.
+  - `src/session.js`, `src/routes/session.js` — cookie de sesión, sin
+    contraseña, y "ver como" (cambiar de rol temporalmente en la propia
+    sesión para probar restricciones — solo cuentas en `VER_COMO_NOMBRES`,
+    auditado). El primer usuario que entra en una base nueva queda
+    `administrador` automáticamente (lógica real en `sesionServer.js`).
   - `src/routes/nodos.js` — alta/edición/baja de hitos-tareas, cada cambio
     registrado en `audit_log`.
-  - `src/routes/admin.js` — usuarios/roles, bitácora, solicitud de proyecto.
+  - `src/routes/admin.js` — usuarios/roles y bitácora (delega a
+    `sesionServer.js`), solicitud de proyecto.
+  - `src/routes/perfil.js` — resumen personal (tareas pendientes, proyectos
+    activos, hitos realizados) para la vista "Mi Perfil".
   - Si Postgres no está disponible (o `DATABASE_URL` no está seteada), el
     backend **no se cae**: degrada solo a lectura desde el Excel.
 - `scripts/` — `watch-and-push.mjs`, el watcher local que reemplaza a Power
@@ -257,15 +270,27 @@ de aplicación más complejo de lo necesario.
 ## Microservicios
 
 Dirección de arquitectura confirmada: **el desarrollo futuro va hacia
-microservicios**, no hacia un monolito más grande. Primer corte ya hecho:
-**ingesta de Excel** (parseo + webhook + import a Postgres) es hoy un
-servicio Render aparte (`src/ingestaServer.js`, desplegado como
-`panel-gestion-proyectos-{dev,prd}-ingesta`), sin código de ruteo por
-entorno — mismo patrón que los 2 backends de API (mismo código, distinto
-`DATABASE_URL`/`DB_SCHEMA`, distinto Docker Command). Candidatos para el
-próximo corte, cuando se aborde:
+microservicios**, no hacia un monolito más grande. Dos cortes ya hechos,
+mismo patrón en ambos (mismo código que la API, distinto
+`DATABASE_URL`/`DB_SCHEMA`, distinto Docker Command, sin ruteo por
+entorno):
 
-- **Sesión/usuarios** separado de hitos/nodos.
+- **Ingesta de Excel** (parseo + webhook + import a Postgres):
+  `src/ingestaServer.js`, desplegado como
+  `panel-gestion-proyectos-{dev,prd}-ingesta`.
+- **Sesión/usuarios** (login, roles, tracking de conexión/acción):
+  `src/sesionServer.js`, desplegado como
+  `panel-gestion-proyectos-{dev,prd}-sesion`. A diferencia de ingesta, este
+  servicio no lo llama nunca el navegador — la cookie de sesión sigue
+  viviendo en el dominio de la API (los subdominios de Render no la
+  comparten entre sí), así que `server.js` actúa como proxy delgado hacia
+  él. Esto también deja el camino listo para CAS más adelante: el día que
+  esté disponible, solo hay que cambiar cómo este servicio valida la
+  identidad (ticket de CAS en vez de "escribe tu nombre"), sin tocar
+  cookies ni el resto de la app.
+
+Candidato para el próximo corte, cuando se aborde:
+
 - **Administración/auditoría** como su propio servicio de solo lectura.
 
 No se fragmenta sin necesidad concreta: dividir prematuramente, sin que un

@@ -8,6 +8,7 @@ export function SessionProvider({ children }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [prompt, setPrompt] = useState(null);
+  const [puedeVerComo, setPuedeVerComo] = useState(false);
 
   const refreshUsers = useCallback(() => {
     apiFetch("/api/users")
@@ -17,7 +18,10 @@ export function SessionProvider({ children }) {
 
   useEffect(() => {
     apiFetch("/api/session")
-      .then((data) => setUser(data.user))
+      .then((data) => {
+        setUser(data.user);
+        setPuedeVerComo(!!data.puedeVerComo);
+      })
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
     refreshUsers();
@@ -30,6 +34,7 @@ export function SessionProvider({ children }) {
         body: JSON.stringify({ nombre }),
       });
       setUser(data.user);
+      setPuedeVerComo(!!data.puedeVerComo);
       refreshUsers();
       return data.user;
     },
@@ -39,6 +44,25 @@ export function SessionProvider({ children }) {
   const logout = useCallback(async () => {
     await apiFetch("/api/session/logout", { method: "POST" });
     setUser(null);
+  }, []);
+
+  // "Ver como": cambia de verdad el rol que aplica el backend en esta
+  // sesión (auditado del lado del servidor) — solo disponible si
+  // puedeVerComo vino en true desde /api/session.
+  const verComo = useCallback(async (rol) => {
+    const data = await apiFetch("/api/session/ver-como", {
+      method: "POST",
+      body: JSON.stringify({ rol }),
+    });
+    const session = await apiFetch("/api/session");
+    setUser(session.user);
+    return data;
+  }, []);
+
+  const salirVerComo = useCallback(async () => {
+    await apiFetch("/api/session/ver-como/salir", { method: "POST" });
+    const session = await apiFetch("/api/session");
+    setUser(session.user);
   }, []);
 
   // Se resuelve de inmediato si ya hay sesión; si no, abre el modal "¿Quién
@@ -65,7 +89,9 @@ export function SessionProvider({ children }) {
   }, [prompt]);
 
   return (
-    <SessionContext.Provider value={{ user, users, loading, login, logout, ensureSession }}>
+    <SessionContext.Provider
+      value={{ user, users, loading, login, logout, ensureSession, puedeVerComo, verComo, salirVerComo }}
+    >
       {children}
       {prompt && (
         <LoginModal onSubmit={handlePromptSubmit} onCancel={handlePromptCancel} users={users} />

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "../db/pool.js";
 import { requireAdmin } from "../session.js";
+import { sesionFetch } from "../sesionClient.js";
 
 export const adminRouter = Router();
 
@@ -50,33 +51,30 @@ adminRouter.post("/admin/proyecto-solicitudes", requireAdmin, async (req, res) =
   }
 });
 
+// Delega a sesionServer.js (servicio aparte): dueño real de usuarios/roles
+// y de "última conexión"/"última acción" (ver README ## Microservicios).
 adminRouter.get("/admin/users", requireAdmin, async (req, res) => {
   try {
-    const { rows } = await pool.query("SELECT id, nombre, rol, created_at FROM users ORDER BY nombre");
-    res.json(rows);
+    const users = await sesionFetch("/internal/admin/users");
+    res.json(users);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 503).json({ error: err.message });
   }
 });
 
 adminRouter.patch("/admin/users/:id", requireAdmin, async (req, res) => {
-  const id = Number(req.params.id);
   const rol = req.body?.rol;
   if (!["administrador", "editor", "lector"].includes(rol)) {
     res.status(400).json({ error: "Rol inválido" });
     return;
   }
   try {
-    const { rows } = await pool.query(
-      "UPDATE users SET rol = $1 WHERE id = $2 RETURNING id, nombre, rol",
-      [rol, id]
-    );
-    if (!rows[0]) {
-      res.status(404).json({ error: "No existe" });
-      return;
-    }
-    res.json(rows[0]);
+    const user = await sesionFetch(`/internal/admin/users/${Number(req.params.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ rol }),
+    });
+    res.json(user);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 503).json({ error: err.message });
   }
 });
