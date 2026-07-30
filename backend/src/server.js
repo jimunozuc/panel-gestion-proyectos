@@ -1,13 +1,13 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { getData, refreshFromUpload } from "./dataSource.js";
+import { getData } from "./dataSource.js";
 import { runMigrations } from "./db/migrate.js";
 import { attachUser } from "./session.js";
 import { sessionRouter } from "./routes/session.js";
 import { nodosRouter } from "./routes/nodos.js";
 import { adminRouter } from "./routes/admin.js";
-import { importAllSheets, loadSheetFromDb } from "./nodos.js";
+import { loadSheetFromDb } from "./nodos.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,36 +24,6 @@ app.use(
   })
 );
 app.use(cookieParser(process.env.COOKIE_SECRET || "dev-secret-cambiar-en-produccion"));
-
-// Va antes de express.json(): necesita leer el body como binario crudo, no
-// como JSON (ver README, sección "Origen de datos").
-app.post(
-  "/api/webhook/refresh",
-  express.raw({ type: () => true, limit: "10mb" }),
-  async (req, res) => {
-    const expected = process.env.REFRESH_SECRET;
-    const provided = req.get("x-refresh-secret");
-    if (expected && provided !== expected) {
-      res.status(401).json({ error: "Secreto inválido" });
-      return;
-    }
-    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
-      res.status(400).json({ error: "Falta el contenido del archivo en el body" });
-      return;
-    }
-    try {
-      const data = await refreshFromUpload(req.body);
-      // Importa a Postgres apenas llega el Excel, no en el próximo GET: así
-      // /api/iniciativas/:num deja de depender del cache en memoria para
-      // servir datos y puede confiar en Postgres como única fuente.
-      await importAllSheets(data.sheets);
-      res.json({ status: "ok", updatedAt: data.updatedAt });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-);
-
 app.use(express.json());
 app.use(attachUser);
 

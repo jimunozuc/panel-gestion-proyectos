@@ -29,9 +29,10 @@ frontend/src/
   data/panelPages.js         las 7 vistas del panel (slug, label, icon)
   data/releases.js           contenido de la pestaña "App Releases"
 backend/src/
-  server.js                  Express, expone /api/iniciativas/:num y /api/webhook/refresh
+  server.js                  Express, expone /api/iniciativas/:num (lee solo Postgres)
+  ingestaServer.js            Express aparte, expone /api/webhook/refresh (servicio Render propio)
   parseWorkbook.js            parsea el Excel por NOMBRE de columna, no posición
-scripts/watch-and-push.mjs   watcher local (agente launchd) que empuja el Excel al backend
+scripts/watch-and-push.mjs   watcher local (agente launchd) que empuja el Excel a los backends
 ```
 
 ## Navegación (importante antes de tocar rutas o layout)
