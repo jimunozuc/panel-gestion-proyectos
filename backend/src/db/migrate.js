@@ -43,3 +43,18 @@ export async function runMigrations() {
     client.release();
   }
 }
+
+// Permite `node src/db/migrate.js` como script suelto (CI, o preparar una
+// base de test/dev nueva) sin duplicar el boot completo del servidor.
+if (import.meta.url === `file://${process.argv[1]}`) {
+  runMigrations()
+    .then(() => {
+      console.log("Migraciones aplicadas.");
+      return pool.end();
+    })
+    .catch((err) => {
+      console.error(err);
+      process.exitCode = 1;
+      return pool.end();
+    });
+}

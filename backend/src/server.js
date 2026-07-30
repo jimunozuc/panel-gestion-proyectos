@@ -7,10 +7,12 @@ import { attachUser } from "./session.js";
 import { sessionRouter } from "./routes/session.js";
 import { nodosRouter } from "./routes/nodos.js";
 import { adminRouter } from "./routes/admin.js";
-import { importSheetIfEmpty, loadSheetFromDb } from "./nodos.js";
+import { importAllSheets, loadSheetFromDb } from "./nodos.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+export { app };
 
 // En producción, CORS_ORIGIN debe ser la URL exacta del frontend. En local
 // se acepta cualquier puerto de localhost (Vite y las previews cambian de
@@ -41,6 +43,10 @@ app.post(
     }
     try {
       const data = await refreshFromUpload(req.body);
+      // Importa a Postgres apenas llega el Excel, no en el próximo GET: así
+      // /api/iniciativas/:num deja de depender del cache en memoria para
+      // servir datos y puede confiar en Postgres como única fuente.
+      await importAllSheets(data.sheets);
       res.json({ status: "ok", updatedAt: data.updatedAt });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -60,40 +66,30 @@ app.get("/api/health", (req, res) => {
 });
 
 app.get("/api/iniciativas/:num", async (req, res) => {
+  // Postgres es la única fuente para leer: la importación ya pasó (o no)
+  // cuando llegó el Excel por el webhook, no acá. El fallback al Excel en
+  // memoria es solo para cuando Postgres mismo falla (no configurado, caído),
+  // no para "todavía no se importó" — eso es un 404 real, no un degradado.
   try {
-    const data = await getData();
-    const sheet = data.sheets[req.params.num];
-
-    // Postgres se consulta primero (y de forma independiente de si el Excel
-    // en memoria trae esta hoja hoy): así una hoja ya migrada sigue
-    // disponible después de un reinicio del backend, aunque el cache en
-    // memoria haya vuelto a poblarse desde el Excel de ejemplo local.
-    try {
-      if (sheet) await importSheetIfEmpty(req.params.num, sheet);
-      const fromDb = await loadSheetFromDb(req.params.num);
-      if (fromDb) {
-        res.json({
-          ...fromDb,
-          // La hoja ya vive en Postgres: manda su propia fecha de última
-          // edición. data.updatedAt es del cache del Excel y solo sirve
-          // como respaldo si por algún motivo no hubiera updated_at.
-          updatedAt: fromDb.updatedAt || data.updatedAt,
-          source: "postgres",
-          editable: true,
-        });
-        return;
-      }
-    } catch (dbErr) {
-      console.warn("Postgres no disponible, sirviendo datos del Excel en memoria:", dbErr.message);
-    }
-
-    if (!sheet) {
-      res.status(404).json({ error: `No existe la hoja "${req.params.num}"` });
+    const fromDb = await loadSheetFromDb(req.params.num);
+    if (fromDb) {
+      res.json({ ...fromDb, source: "postgres", editable: true });
       return;
     }
-    res.json({ ...sheet, updatedAt: data.updatedAt, source: data.source, editable: false });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(404).json({ error: `No existe la hoja "${req.params.num}"` });
+  } catch (dbErr) {
+    console.warn("Postgres no disponible, sirviendo datos del Excel en memoria:", dbErr.message);
+    try {
+      const data = await getData();
+      const sheet = data.sheets[req.params.num];
+      if (!sheet) {
+        res.status(404).json({ error: `No existe la hoja "${req.params.num}"` });
+        return;
+      }
+      res.json({ ...sheet, updatedAt: data.updatedAt, source: data.source, editable: false });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   }
 });
 
@@ -113,4 +109,8 @@ async function start() {
   });
 }
 
-start();
+// Guard de entrypoint: al importar `app` desde un test (supertest) no
+// queremos levantar el puerto ni correr migraciones de nuevo.
+if (import.meta.url === `file://${process.argv[1]}`) {
+  start();
+}

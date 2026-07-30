@@ -120,14 +120,24 @@ solo una parte esté activa — no se inventan datos para los que no los tienen.
     (objetivo → iniciativas) y nivel 3 (ficha del proyecto con pestañas).
   - `src/pages/Admin.jsx` — usuarios/roles, bitácora, solicitud de proyecto.
 - `backend/` — Node.js + Express.
+  - `src/ingestaServer.js` — **entrypoint nuevo** para separar la ingesta de
+    Excel (webhook + parseo + import a Postgres) como servicio Render aparte
+    (`npm run start:ingesta`), primer corte de la dirección de
+    microservicios (ver `## Microservicios`). Mismo código/Dockerfile que la
+    API, distinto Docker Command. De momento coexiste con el webhook que
+    todavía tiene `server.js` — el corte real (sacarlo de ahí) es un paso
+    aparte, una vez que los servicios de ingesta estén desplegados y
+    verificados en Render.
   - `src/parseWorkbook.js` — parsea el Excel real recibido por webhook, **por
     nombre de columna**, no por posición.
   - `src/db/` — `pool.js` (conexión Postgres, `DB_SCHEMA` opcional para
     aislar entornos en una misma base), `migrate.js` + `migrations/` (schema
     versionado, corre solo al boot).
   - `src/nodos.js` — hitos/tareas como árbol de 3 niveles en la tabla
-    `nodos`; la primera vez que se pide una hoja, la copia una única vez
-    desde el Excel — de ahí en más, Postgres manda.
+    `nodos`; `importAllSheets` copia cada hoja a Postgres una única vez, en
+    cuanto llega por el webhook (no al leerla) — de ahí en más, Postgres
+    manda y `GET /api/iniciativas/:num` ya no depende del Excel en memoria
+    salvo que Postgres mismo falle.
   - `src/session.js`, `src/routes/session.js` — sesión por cookie, sin
     contraseña; el primer usuario que entra en una base nueva queda
     `administrador` automáticamente.
@@ -174,6 +184,21 @@ docker compose up --build
 
 Backend en `http://localhost:3001` (con su propia Postgres en el mismo
 `docker-compose.yml`), frontend en `http://localhost:8080`.
+
+**Tests del backend:**
+
+```bash
+createdb panel_test   # una vez; base descartable, nunca la de desarrollo
+cd backend
+TEST_DATABASE_URL=postgres://localhost/panel_test npm test
+```
+
+`node --test` corre `parseWorkbook.test.js` (sin DB) y los tests de
+`nodos.js`/`routes/nodos.js` (aplican migraciones y truncan las tablas antes
+de cada test). Sin `TEST_DATABASE_URL` seteada, esos archivos fallan rápido
+en vez de correr contra `DATABASE_URL` real — nunca apunten esta variable a
+la base de datos de desarrollo/producción. CI (`.github/workflows/backend-ci.yml`)
+corre lo mismo contra un Postgres descartable en cada PR.
 
 ## Estado actual
 
@@ -297,9 +322,10 @@ Equipo edita el Gantt en SharePoint (como siempre)
     y también reenvía cada 5 min como respaldo (por si el watch se pierde
     un evento, ej. el Mac estaba dormido)
   → POST a /api/webhook/refresh con el archivo en el body (+ secreto compartido)
-  → backend recalcula los datos en memoria (y, en /app/ y /dev/, los copia
-    a Postgres la primera vez que se pide cada hoja)
-  → GET /api/iniciativas/:num sirve los datos ya frescos al frontend
+  → backend recalcula los datos en memoria y, en /app/ y /dev/, importa a
+    Postgres ahí mismo cada hoja que todavía no existía (importAllSheets)
+  → GET /api/iniciativas/:num lee solo de Postgres — el Excel en memoria
+    queda como resguardo únicamente si Postgres mismo falla
 ```
 
 El backend nunca descarga nada por su cuenta — solo recibe lo que le
@@ -355,6 +381,18 @@ Ver el runbook completo usado para `/dev/` y `/app/` — resumen:
 4. En GitHub: variable de Actions `VITE_API_URL_<ENTORNO>` con la URL del
    servicio nuevo, y el build correspondiente en
    `.github/workflows/deploy-pages.yml` apuntando a esa variable.
+
+**Para un servicio de ingesta en vez de la API** (mismo repo/rama/Root
+Directory que su par API, mismo Dockerfile): en Advanced, **Docker Command**
+`npm run start:ingesta` en vez del default. Env vars: solo `DATABASE_URL`,
+`DB_SCHEMA` (el mismo que su par API — escriben al mismo schema que la API
+lee), `REFRESH_SECRET` y **`NODE_ENV=production`** (sin esta, `pool.js` no
+habilita SSL y la conexión falla de un modo indistinguible del típico "Postgres
+no disponible" — fácil de perder tiempo depurando a ciegas). Sin
+`CORS_ORIGIN`/`COOKIE_SECRET`/`BOOTSTRAP_ADMIN_NAMES` — ingesta no tiene
+cookies, CORS ni usuarios. Sin paso 4: nadie en el frontend le habla a este
+servicio, así que no hay `VITE_API_URL` que apuntarle — la URL nueva es para
+`PUSH_TARGETS_JSON` del watcher (`scripts/.env.example`), no para GitHub Pages.
 
 **Cuidado conocido:** el servicio Render de un branch productivo (ej.
 `main`) puede quedar corriendo código viejo simplemente porque nadie pusheó

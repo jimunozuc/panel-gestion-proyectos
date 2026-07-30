@@ -245,4 +245,4 @@ export async function parseWorkbookBuffer(buffer, { today = new Date() } = {}) {
   return result;
 }
 
-export { COLUMNS };
+export { COLUMNS, SHEET_ALIASES };

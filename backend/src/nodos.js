@@ -1,4 +1,5 @@
 import { pool } from "./db/pool.js";
+import { SHEET_ALIASES } from "./parseWorkbook.js";
 
 export function isoDate(value) {
   if (!value) return null;
@@ -102,4 +103,21 @@ export async function loadSheetFromDb(sheetId) {
   }
 
   return { team, tree: roots, updatedAt };
+}
+
+// Se llama al recibir un Excel fresco por el webhook, no al leer: así el GET
+// de /api/iniciativas/:num deja de depender del cache en memoria y puede
+// confiar en Postgres como única fuente una vez que la hoja llegó alguna vez.
+// Salta los alias (ej. "6.2" de "P6.1.3"): son la misma hoja con otra clave,
+// no una hoja aparte — importarlos también duplicaría el árbol en Postgres.
+export async function importAllSheets(sheets) {
+  const aliasTargets = new Set(Object.values(SHEET_ALIASES));
+  for (const [sheetId, sheet] of Object.entries(sheets)) {
+    if (aliasTargets.has(sheetId)) continue;
+    try {
+      await importSheetIfEmpty(sheetId, sheet);
+    } catch (err) {
+      console.warn(`No se pudo importar la hoja "${sheetId}" a Postgres:`, err.message);
+    }
+  }
 }
