@@ -1,5 +1,15 @@
 export const RELEASES = [
   {
+    version: "MVP 3.3",
+    status: "hecho",
+    items: [
+      "Nueva vista \"Mi Perfil\": cada persona puede ver cuántas tareas tiene pendientes, en cuántos proyectos está activa y cuántos hitos ha completado — y agregar una tarea nueva directamente ahí.",
+      "La tabla de usuarios en Administración ahora también muestra la última conexión y la última acción de cada persona.",
+      "El inicio de sesión y la gestión de usuarios ahora corren en su propio servicio interno, separado de la aplicación principal — mismo objetivo de robustez que la actualización automática de datos.",
+      "La página \"Cómo funciona\" se actualizó para describir solo las dos versiones vigentes con edición (producción y pruebas).",
+    ],
+  },
+  {
     version: "MVP 3.2",
     status: "hecho",
     items: [
