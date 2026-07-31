@@ -1,9 +1,13 @@
 import pg from "pg";
 
 const { Pool } = pg;
+// Sin SSL contra localhost (Postgres.app/local no lo ofrece); con SSL
+// laxo contra cualquier otro host (así sirve tanto para probar local como
+// para inspeccionar Render, con la misma DATABASE_URL que uses).
+const isLocal = /(localhost|127\.0\.0\.1)/.test(process.env.DATABASE_URL || "");
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: isLocal ? false : { rejectUnauthorized: false },
 });
 
 const { rows: schemas } = await pool.query(`
