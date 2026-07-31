@@ -33,13 +33,13 @@ export function clearSessionCookie(res) {
 }
 
 // Cuentas habilitadas para "ver como" (probar la app con otro rol sin
-// perder de verdad los permisos de administrador). Nombres separados por
-// coma, mismo patrón que BOOTSTRAP_ADMIN_NAMES — deliberadamente acotado:
-// sin nombres configurados, la función queda inexistente para todos.
-function verComoAllowedNames() {
-  return String(process.env.VER_COMO_NOMBRES || "")
+// perder de verdad los permisos de administrador). Correos separados por
+// coma, mismo patrón que BOOTSTRAP_ADMIN_EMAILS — deliberadamente acotado:
+// sin correos configurados, la función queda inexistente para todos.
+function verComoAllowedCorreos() {
+  return String(process.env.VER_COMO_CORREOS || "")
     .split(",")
-    .map((n) => n.trim().toLowerCase())
+    .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 }
 
@@ -49,7 +49,7 @@ function verComoAllowedNames() {
 export function puedeVerComo(user) {
   if (!user) return false;
   const rolReal = user.rolReal || user.rol;
-  return rolReal === "administrador" && verComoAllowedNames().includes(user.nombre.toLowerCase());
+  return rolReal === "administrador" && verComoAllowedCorreos().includes(user.correo.toLowerCase());
 }
 
 export function setVerComoCookie(res, rol) {
@@ -69,10 +69,22 @@ export async function attachUser(req, res, next) {
   }
   try {
     const { rows } = await pool.query(
-      "SELECT id, nombre, rol FROM users WHERE id = $1",
+      "SELECT id, nombre, rol, correo, activo FROM users WHERE id = $1",
       [uid]
     );
-    req.user = rows[0] || null;
+    const row = rows[0];
+    if (row && row.activo) {
+      req.user = row;
+    } else {
+      req.user = null;
+      if (row && !row.activo) {
+        // Se desactivó la cuenta después de emitida esta cookie -- se
+        // limpia acá para que el navegador deje de reenviarla (si no,
+        // seguiría pegándole a esta consulta en cada request hasta que
+        // expire sola, hasta 180 días después, ver MAX_AGE_MS).
+        clearSessionCookie(res);
+      }
+    }
   } catch {
     req.user = null;
   }

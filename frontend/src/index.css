@@ -2846,13 +2846,57 @@ body {
   margin-bottom: 1rem;
 }
 
+.admin-nombre-input {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: #fff;
+  width: 100%;
+  min-width: 12rem;
+}
+
+.admin-nombre-input:focus-visible {
+  outline: none;
+  border-color: var(--uc-azul);
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
+.admin-activo-toggle {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.admin-activo-toggle[data-activo="true"] {
+  color: #146c2e;
+  border-color: #9fd6ae;
+  background: #eefaf1;
+}
+
+.admin-activo-toggle[data-activo="false"] {
+  color: #b3261e;
+  border-color: #f0b4ae;
+  background: #fdecea;
+}
+
+.admin-activo-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .session-modal-input,
   .session-modal-cancel,
   .session-modal-submit,
   .edit-nodo-field input,
   .hito-edit-btn,
-  .admin-role-select {
+  .admin-role-select,
+  .admin-nombre-input,
+  .admin-activo-toggle {
     transition: none;
   }
 }

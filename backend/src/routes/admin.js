@@ -62,16 +62,62 @@ adminRouter.get("/admin/users", requireAdmin, async (req, res) => {
   }
 });
 
-adminRouter.patch("/admin/users/:id", requireAdmin, async (req, res) => {
+// Da de alta una cuenta ANTES de su primer login — el admin decide
+// correo+rol de antemano (ver sesionServer.js, ya no hay creación
+// automática al loguearse con un correo desconocido).
+adminRouter.post("/admin/users", requireAdmin, async (req, res) => {
+  const correo = String(req.body?.correo || "").trim();
+  const nombre = String(req.body?.nombre || "").trim();
   const rol = req.body?.rol;
+  if (!correo) {
+    res.status(400).json({ error: "Falta el correo" });
+    return;
+  }
   if (!["administrador", "editor", "lector"].includes(rol)) {
     res.status(400).json({ error: "Rol inválido" });
     return;
   }
   try {
+    const user = await sesionFetch("/internal/admin/users", {
+      method: "POST",
+      body: JSON.stringify({ correo, nombre, rol }),
+    });
+    res.status(201).json(user);
+  } catch (err) {
+    res.status(err.status || 503).json({ error: err.message });
+  }
+});
+
+// rol, nombre y activo son independientes — el body trae solo los campos
+// que cambian (ej. el toggle de activo no reenvía el rol).
+adminRouter.patch("/admin/users/:id", requireAdmin, async (req, res) => {
+  const body = req.body || {};
+  const patch = {};
+  if (body.rol !== undefined) {
+    if (!["administrador", "editor", "lector"].includes(body.rol)) {
+      res.status(400).json({ error: "Rol inválido" });
+      return;
+    }
+    patch.rol = body.rol;
+  }
+  if (body.nombre !== undefined) {
+    patch.nombre = body.nombre;
+  }
+  if (body.activo !== undefined) {
+    if (typeof body.activo !== "boolean") {
+      res.status(400).json({ error: "activo debe ser boolean" });
+      return;
+    }
+    patch.activo = body.activo;
+  }
+  if (Object.keys(patch).length === 0) {
+    res.status(400).json({ error: "Nada para actualizar" });
+    return;
+  }
+  try {
     const user = await sesionFetch(`/internal/admin/users/${Number(req.params.id)}`, {
       method: "PATCH",
-      body: JSON.stringify({ rol }),
+      body: JSON.stringify(patch),
     });
     res.json(user);
   } catch (err) {

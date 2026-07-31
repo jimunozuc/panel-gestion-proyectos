@@ -27,19 +27,10 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", service: "sesion" });
 });
 
-app.get("/internal/users", async (req, res) => {
-  try {
-    const { rows } = await pool.query("SELECT id, nombre, rol FROM users ORDER BY nombre");
-    res.json(rows);
-  } catch (err) {
-    res.status(503).json({ error: "Base de datos no disponible" });
-  }
-});
-
 app.get("/internal/admin/users", async (req, res) => {
   try {
     const { rows } = await pool.query(`
-      SELECT u.id, u.nombre, u.rol, u.created_at, u.last_login_at,
+      SELECT u.id, u.nombre, u.correo, u.rol, u.activo, u.created_at, u.last_login_at,
              la.created_at AS last_action_at, la.accion AS last_action
       FROM users u
       LEFT JOIN LATERAL (
@@ -55,17 +46,81 @@ app.get("/internal/admin/users", async (req, res) => {
   }
 });
 
-app.patch("/internal/admin/users/:id", async (req, res) => {
-  const id = Number(req.params.id);
+// Aprovisiona una cuenta antes de su primer login — un administrador es
+// quien decide correo+rol de antemano, no la persona al loguearse.
+app.post("/internal/admin/users", async (req, res) => {
+  const correo = String(req.body?.correo || "").trim().toLowerCase();
+  const nombre = String(req.body?.nombre || "").trim();
   const rol = req.body?.rol;
+  if (!correo || !CORREO_RE.test(correo)) {
+    res.status(400).json({ error: "Correo inválido" });
+    return;
+  }
   if (!["administrador", "editor", "lector"].includes(rol)) {
     res.status(400).json({ error: "Rol inválido" });
     return;
   }
   try {
     const { rows } = await pool.query(
-      "UPDATE users SET rol = $1 WHERE id = $2 RETURNING id, nombre, rol",
-      [rol, id]
+      `INSERT INTO users (correo, nombre, rol, activo)
+       VALUES ($1, $2, $3, true)
+       RETURNING id, nombre, correo, rol, activo, created_at, last_login_at`,
+      [correo, nombre || correo, rol]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    if (err.code === "23505") {
+      res.status(409).json({ error: "Ya existe una cuenta con ese correo" });
+      return;
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// rol, nombre y activo son independientes entre sí — el body puede traer
+// uno, dos o los tres a la vez; solo se actualizan los que vienen presentes.
+app.patch("/internal/admin/users/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  const body = req.body || {};
+  const sets = [];
+  const values = [];
+
+  if (body.rol !== undefined) {
+    if (!["administrador", "editor", "lector"].includes(body.rol)) {
+      res.status(400).json({ error: "Rol inválido" });
+      return;
+    }
+    values.push(body.rol);
+    sets.push(`rol = $${values.length}`);
+  }
+  if (body.nombre !== undefined) {
+    const nombre = String(body.nombre).trim();
+    if (!nombre) {
+      res.status(400).json({ error: "El nombre no puede quedar vacío" });
+      return;
+    }
+    values.push(nombre);
+    sets.push(`nombre = $${values.length}`);
+  }
+  if (body.activo !== undefined) {
+    if (typeof body.activo !== "boolean") {
+      res.status(400).json({ error: "activo debe ser boolean" });
+      return;
+    }
+    values.push(body.activo);
+    sets.push(`activo = $${values.length}`);
+  }
+  if (sets.length === 0) {
+    res.status(400).json({ error: "Nada para actualizar (rol, nombre y/o activo)" });
+    return;
+  }
+
+  values.push(id);
+  try {
+    const { rows } = await pool.query(
+      `UPDATE users SET ${sets.join(", ")} WHERE id = $${values.length}
+       RETURNING id, nombre, correo, rol, activo`,
+      values
     );
     if (!rows[0]) {
       res.status(404).json({ error: "No existe" });
@@ -77,46 +132,67 @@ app.patch("/internal/admin/users/:id", async (req, res) => {
   }
 });
 
-// Sin contraseña: si el nombre no existe se crea al vuelo. El primer
-// usuario que se registra en todo el sistema queda como administrador; el
-// resto entra como editor y un administrador le cambia el rol después.
-// BOOTSTRAP_ADMIN_NAMES (env var, nombres separados por coma) cubre el caso
-// en que la regla "primer usuario = admin" no alcanza. Se aplica en cada
-// login, no solo al crear el usuario.
-function bootstrapAdminNames() {
-  return String(process.env.BOOTSTRAP_ADMIN_NAMES || "")
+// Sin contraseña, aprovisionado por un administrador: un correo solo puede
+// iniciar sesión si ya tiene una fila en `users` (creada desde Admin.jsx) o
+// si está en BOOTSTRAP_ADMIN_EMAILS. Ya no existe "el primer usuario del
+// sistema queda administrador" ni "se crea la cuenta al vuelo con
+// cualquier nombre": correo no reconocido y no bootstrap = 403.
+// BOOTSTRAP_ADMIN_EMAILS (env var, correos separados por coma) es el
+// mecanismo de arranque: sin él, nadie podría darse de alta a sí mismo como
+// el primer administrador. Se aplica en cada login, no solo al crear la
+// cuenta (si se agrega un correo a la lista después de que esa cuenta ya
+// existía con otro rol, el próximo login la vuelve a promover).
+const CORREO_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function bootstrapAdminEmails() {
+  return String(process.env.BOOTSTRAP_ADMIN_EMAILS || "")
     .split(",")
-    .map((n) => n.trim().toLowerCase())
+    .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 }
 
 app.post("/internal/login", async (req, res) => {
+  const correo = String(req.body?.correo || "").trim().toLowerCase();
   const nombre = String(req.body?.nombre || "").trim();
-  if (!nombre) {
-    res.status(400).json({ error: "Falta el nombre" });
+  if (!correo) {
+    res.status(400).json({ error: "Falta el correo" });
+    return;
+  }
+  if (!CORREO_RE.test(correo)) {
+    res.status(400).json({ error: "Correo inválido" });
     return;
   }
 
   try {
     const existing = await pool.query(
-      "SELECT id, nombre, rol FROM users WHERE lower(nombre) = lower($1)",
-      [nombre]
+      "SELECT id, nombre, rol, correo, activo FROM users WHERE correo = $1",
+      [correo]
     );
     let user = existing.rows[0];
-    const isBootstrapAdmin = bootstrapAdminNames().includes(nombre.toLowerCase());
+    const isBootstrapAdmin = bootstrapAdminEmails().includes(correo);
 
     if (!user) {
-      const { rows: countRows } = await pool.query("SELECT count(*)::int AS n FROM users");
-      const rol = isBootstrapAdmin || countRows[0].n === 0 ? "administrador" : "editor";
+      if (!isBootstrapAdmin) {
+        res.status(403).json({
+          error: "Tu correo no tiene acceso. Pide a un administrador que te dé de alta.",
+        });
+        return;
+      }
       const inserted = await pool.query(
-        "INSERT INTO users (nombre, rol, last_login_at) VALUES ($1, $2, now()) RETURNING id, nombre, rol",
-        [nombre, rol]
+        `INSERT INTO users (correo, nombre, rol, activo, last_login_at)
+         VALUES ($1, $2, 'administrador', true, now())
+         RETURNING id, nombre, rol, correo, activo`,
+        [correo, nombre || correo]
       );
       user = inserted.rows[0];
     } else {
+      if (!user.activo) {
+        res.status(403).json({ error: "Tu cuenta está desactivada. Contacta a un administrador." });
+        return;
+      }
       if (isBootstrapAdmin && user.rol !== "administrador") {
         const updated = await pool.query(
-          "UPDATE users SET rol = 'administrador' WHERE id = $1 RETURNING id, nombre, rol",
+          "UPDATE users SET rol = 'administrador' WHERE id = $1 RETURNING id, nombre, rol, correo, activo",
           [user.id]
         );
         user = updated.rows[0];

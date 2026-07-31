@@ -27,6 +27,7 @@ function labelIniciativa(ejeId, iniciativaId) {
 }
 
 const SOLICITUD_INICIAL = { ejeId: "", iniciativaId: "", nombre: "", responsable: "", descripcion: "" };
+const CREATE_USER_INICIAL = { correo: "", nombre: "", rol: "lector" };
 
 export default function Admin() {
   const { user, loading: sessionLoading } = useSession();
@@ -39,6 +40,9 @@ export default function Admin() {
   const [solicitudForm, setSolicitudForm] = useState(SOLICITUD_INICIAL);
   const [solicitudSaving, setSolicitudSaving] = useState(false);
   const [solicitudError, setSolicitudError] = useState(null);
+  const [createForm, setCreateForm] = useState(CREATE_USER_INICIAL);
+  const [createSaving, setCreateSaving] = useState(false);
+  const [createError, setCreateError] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -71,6 +75,52 @@ export default function Admin() {
       setError(err.message || "No se pudo cambiar el rol");
     } finally {
       setSavingId(null);
+    }
+  };
+
+  const toggleActivo = async (id, activo) => {
+    setSavingId(id);
+    try {
+      await apiFetch(`/api/admin/users/${id}`, { method: "PATCH", body: JSON.stringify({ activo }) });
+      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, activo } : u)));
+    } catch (err) {
+      setError(err.message || "No se pudo cambiar el estado de la cuenta");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  // onBlur en vez de onChange: guarda un solo PATCH al salir del campo, no
+  // uno por tecla. Si no cambió nada no llama a la API.
+  const updateNombre = async (id, nombre) => {
+    const nombreTrim = nombre.trim();
+    if (!nombreTrim || nombreTrim === users.find((u) => u.id === id)?.nombre) return;
+    setSavingId(id);
+    try {
+      await apiFetch(`/api/admin/users/${id}`, { method: "PATCH", body: JSON.stringify({ nombre: nombreTrim }) });
+      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, nombre: nombreTrim } : u)));
+    } catch (err) {
+      setError(err.message || "No se pudo cambiar el nombre");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const setCreateField = (field) => (e) =>
+    setCreateForm((f) => ({ ...f, [field]: e.target.value }));
+
+  const submitCreate = async (e) => {
+    e.preventDefault();
+    setCreateSaving(true);
+    setCreateError(null);
+    try {
+      await apiFetch("/api/admin/users", { method: "POST", body: JSON.stringify(createForm) });
+      setCreateForm(CREATE_USER_INICIAL);
+      load();
+    } catch (err) {
+      setCreateError(err.message || "No se pudo crear la cuenta");
+    } finally {
+      setCreateSaving(false);
     }
   };
 
@@ -131,8 +181,12 @@ export default function Admin() {
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Cuenta</th>
+                    <th title="Debe coincidir con el nombre en la columna Responsable del Excel para que Mi Perfil funcione">
+                      Cuenta
+                    </th>
+                    <th>Correo</th>
                     <th>Rol</th>
+                    <th>Estado</th>
                     <th>Desde</th>
                     <th>Última conexión</th>
                     <th>Última acción</th>
@@ -141,7 +195,16 @@ export default function Admin() {
                 <tbody>
                   {users.map((u) => (
                     <tr key={u.id}>
-                      <td>{u.nombre}</td>
+                      <td>
+                        <input
+                          className="admin-nombre-input"
+                          defaultValue={u.nombre}
+                          disabled={savingId === u.id}
+                          onBlur={(e) => updateNombre(u.id, e.target.value)}
+                          title="Debe coincidir con el nombre en la columna Responsable del Excel para que Mi Perfil funcione"
+                        />
+                      </td>
+                      <td>{u.correo}</td>
                       <td>
                         <select
                           value={u.rol}
@@ -156,6 +219,17 @@ export default function Admin() {
                           ))}
                         </select>
                       </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="admin-activo-toggle"
+                          data-activo={u.activo}
+                          disabled={savingId === u.id}
+                          onClick={() => toggleActivo(u.id, !u.activo)}
+                        >
+                          {u.activo ? "Activo" : "Desactivado"}
+                        </button>
+                      </td>
                       <td>{fmtDateTime(u.created_at)}</td>
                       <td>{fmtDateTime(u.last_login_at)}</td>
                       <td>{u.last_action ? `${u.last_action} · ${fmtDateTime(u.last_action_at)}` : "—"}</td>
@@ -163,12 +237,51 @@ export default function Admin() {
                   ))}
                   {users.length === 0 && (
                     <tr>
-                      <td colSpan={5}>Todavía no hay usuarios registrados.</td>
+                      <td colSpan={7}>Todavía no hay usuarios registrados.</td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
+
+            <h4>Dar de alta una cuenta</h4>
+            <p className="subtitle">
+              Asigna un correo y un rol antes de que esa persona inicie sesión por primera vez —
+              va a entrar directo con el rol que le asignes acá.
+            </p>
+            <form className="edit-nodo-form admin-solicitud-form" onSubmit={submitCreate}>
+              <label className="edit-nodo-field">
+                Correo
+                <input
+                  type="email"
+                  value={createForm.correo}
+                  onChange={setCreateField("correo")}
+                  disabled={createSaving}
+                  placeholder="nombre.apellido@uc.cl"
+                  required
+                />
+              </label>
+              <label className="edit-nodo-field">
+                Nombre (opcional)
+                <input value={createForm.nombre} onChange={setCreateField("nombre")} disabled={createSaving} />
+              </label>
+              <label className="edit-nodo-field">
+                Rol
+                <select value={createForm.rol} onChange={setCreateField("rol")} disabled={createSaving}>
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {createError && <p className="session-modal-error">{createError}</p>}
+              <div className="session-modal-actions">
+                <button type="submit" className="session-modal-submit" disabled={createSaving}>
+                  {createSaving ? "Creando..." : "Dar de alta"}
+                </button>
+              </div>
+            </form>
           </section>
 
           <section className="admin-section">

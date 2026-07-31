@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import request from "supertest";
 import { app } from "../server.js";
 import { app as sesionApp } from "../sesionServer.js";
+import { provisionAndLogin } from "../testUtils/auth.js";
 
 let sesionServerHandle;
 
@@ -21,12 +22,6 @@ before(
 );
 after(() => new Promise((resolve) => sesionServerHandle.close(resolve)));
 beforeEach(resetDb);
-
-async function loginAs(nombre) {
-  const agent = request.agent(app);
-  await agent.post("/api/session/login").send({ nombre }).expect(200);
-  return agent;
-}
 
 async function seedNodo({ sheetId, tipo, responsable, avance }) {
   await pool.query(
@@ -46,7 +41,7 @@ test("cuenta tareas pendientes, proyectos activos e hitos realizados solo del us
   await seedNodo({ sheetId: "P6.1.2", tipo: "Tarea", responsable: "Ana", avance: 100 }); // completada, no cuenta como pendiente
   await seedNodo({ sheetId: "P6.1.3", tipo: "Tarea", responsable: "Otra Persona", avance: 10 }); // de otro responsable
 
-  const ana = await loginAs("Ana");
+  const { agent: ana } = await provisionAndLogin(app, { correo: "ana@test.local", nombre: "Ana" });
   const res = await ana.get("/api/perfil/resumen").expect(200);
 
   assert.equal(res.body.nombre, "Ana");
@@ -56,7 +51,10 @@ test("cuenta tareas pendientes, proyectos activos e hitos realizados solo del us
 });
 
 test("sin nodos asignados, responde ceros (no 404 ni error)", async () => {
-  const nadie = await loginAs("Nadie Asignado");
+  const { agent: nadie } = await provisionAndLogin(app, {
+    correo: "nadie-asignado@test.local",
+    nombre: "Nadie Asignado",
+  });
   const res = await nadie.get("/api/perfil/resumen").expect(200);
   assert.deepEqual(
     { tareasPendientes: res.body.tareasPendientes, proyectosActivos: res.body.proyectosActivos, hitosRealizados: res.body.hitosRealizados },

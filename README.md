@@ -154,9 +154,11 @@ solo una parte esté activa — no se inventan datos para los que no los tienen.
     emite/lee la cookie de sesión en su propio dominio.
   - `src/session.js`, `src/routes/session.js` — cookie de sesión, sin
     contraseña, y "ver como" (cambiar de rol temporalmente en la propia
-    sesión para probar restricciones — solo cuentas en `VER_COMO_NOMBRES`,
-    auditado). El primer usuario que entra en una base nueva queda
-    `administrador` automáticamente (lógica real en `sesionServer.js`).
+    sesión para probar restricciones — solo cuentas en `VER_COMO_CORREOS`,
+    auditado). Login por correo, aprovisionado de antemano por un
+    administrador desde `/admin` (correo + rol) — `BOOTSTRAP_ADMIN_EMAILS`
+    es la excepción para arrancar el primer administrador de un entorno
+    nuevo (lógica real en `sesionServer.js`).
   - `src/routes/nodos.js` — alta/edición/baja de hitos-tareas, cada cambio
     registrado en `audit_log`.
   - `src/routes/admin.js` — usuarios/roles y bitácora (delega a
@@ -286,7 +288,7 @@ entorno):
   comparten entre sí), así que `server.js` actúa como proxy delgado hacia
   él. Esto también deja el camino listo para CAS más adelante: el día que
   esté disponible, solo hay que cambiar cómo este servicio valida la
-  identidad (ticket de CAS en vez de "escribe tu nombre"), sin tocar
+  identidad (ticket de CAS en vez de "escribe tu correo"), sin tocar
   cookies ni el resto de la app.
 
 Candidato para el próximo corte, cuando se aborde:
@@ -411,10 +413,11 @@ Ver el runbook completo usado para `/dev/` y `/app/` — resumen:
 3. **Env vars** en el web service: `DATABASE_URL`, `DB_SCHEMA` (si aplica),
    `CORS_ORIGIN` (el origen exacto de GitHub Pages, sin path), `NODE_ENV=production`,
    `COOKIE_SECRET` (random), `REFRESH_SECRET` (random, para el webhook).
-   Opcional: `BOOTSTRAP_ADMIN_NAMES` (nombres separados por coma) para que
-   personas puntuales queden `administrador` automáticamente en cada login
-   en ese entorno, sin depender de "ser el primer usuario" ni de tocar la
-   base a mano.
+   Opcional: `BOOTSTRAP_ADMIN_EMAILS` (correos separados por coma) para que
+   personas puntuales queden `administrador` automáticamente la primera vez
+   que inicien sesión en ese entorno — mecanismo de arranque para el primer
+   administrador; el resto de las cuentas las da de alta un administrador
+   desde `/admin` (correo + rol) antes de que esa persona inicie sesión.
 4. En GitHub: variable de Actions `VITE_API_URL_<ENTORNO>` con la URL del
    servicio nuevo, y el build correspondiente en
    `.github/workflows/deploy-pages.yml` apuntando a esa variable.
@@ -426,7 +429,7 @@ Directory que su par API, mismo Dockerfile): en Advanced, **Docker Command**
 lee), `REFRESH_SECRET` y **`NODE_ENV=production`** (sin esta, `pool.js` no
 habilita SSL y la conexión falla de un modo indistinguible del típico "Postgres
 no disponible" — fácil de perder tiempo depurando a ciegas). Sin
-`CORS_ORIGIN`/`COOKIE_SECRET`/`BOOTSTRAP_ADMIN_NAMES` — ingesta no tiene
+`CORS_ORIGIN`/`COOKIE_SECRET`/`BOOTSTRAP_ADMIN_EMAILS` — ingesta no tiene
 cookies, CORS ni usuarios. Sin paso 4: nadie en el frontend le habla a este
 servicio, así que no hay `VITE_API_URL` que apuntarle — la URL nueva es para
 `PUSH_TARGETS_JSON` del watcher (`scripts/.env.example`), no para GitHub Pages.
