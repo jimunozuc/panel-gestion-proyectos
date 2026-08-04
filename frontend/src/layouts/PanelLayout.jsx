@@ -40,7 +40,7 @@ export default function PanelLayout() {
     proyectoId,
     proyecto,
   } = useNavContext();
-  const { user, logout, ensureSession } = useSession();
+  const { user, logout, ensureSession, loading: sessionLoading } = useSession();
 
   const crumbs = [];
   if (isContextoRoute) {
@@ -136,15 +136,6 @@ export default function PanelLayout() {
               Administración
             </Link>
           )}
-          {!user && (
-            <button
-              type="button"
-              className="nav-rail-footer-link nav-rail-footer-link--button"
-              onClick={() => ensureSession().catch(() => {})}
-            >
-              Iniciar sesión
-            </button>
-          )}
           <Link to="/app-releases" className="nav-rail-footer-link">
             App Releases
           </Link>
@@ -153,27 +144,46 @@ export default function PanelLayout() {
 
       <div className="nav-content">
         <div className="nav-content-inner">
-          <nav className="breadcrumb" aria-label="Ruta de navegación">
-            {crumbs.map((c, i) => (
-              <Fragment key={i}>
-                {i > 0 && (
-                  <span className="breadcrumb-sep" aria-hidden="true">
-                    /
-                  </span>
-                )}
-                {c.to ? (
-                  <Link to={c.to} className="breadcrumb-link">
-                    {c.label}
-                  </Link>
-                ) : (
-                  <span className="breadcrumb-current">{c.label}</span>
-                )}
-              </Fragment>
-            ))}
-          </nav>
-          <div className="content-card">
-            <Outlet />
-          </div>
+          {sessionLoading ? (
+            <div className="content-card">
+              <p className="subtitle">Cargando…</p>
+            </div>
+          ) : !user ? (
+            <div className="content-card">
+              <p className="subtitle">Identifícate para ver el contenido del panel.</p>
+              <button
+                type="button"
+                className="session-modal-submit"
+                onClick={() => ensureSession().catch(() => {})}
+              >
+                Iniciar sesión
+              </button>
+            </div>
+          ) : (
+            <>
+              <nav className="breadcrumb" aria-label="Ruta de navegación">
+                {crumbs.map((c, i) => (
+                  <Fragment key={i}>
+                    {i > 0 && (
+                      <span className="breadcrumb-sep" aria-hidden="true">
+                        /
+                      </span>
+                    )}
+                    {c.to ? (
+                      <Link to={c.to} className="breadcrumb-link">
+                        {c.label}
+                      </Link>
+                    ) : (
+                      <span className="breadcrumb-current">{c.label}</span>
+                    )}
+                  </Fragment>
+                ))}
+              </nav>
+              <div className="content-card">
+                <Outlet />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
