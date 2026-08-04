@@ -159,10 +159,17 @@ solo una parte esté activa — no se inventan datos para los que no los tienen.
     administrador desde `/admin` (correo + rol) — `BOOTSTRAP_ADMIN_EMAILS`
     es la excepción para arrancar el primer administrador de un entorno
     nuevo (lógica real en `sesionServer.js`).
+  - `src/adminServer.js` — servicio Render aparte, solo lectura, para la
+    bitácora (`audit_log`), desplegado como
+    `panel-gestion-proyectos-{dev,prd}-admin` — tercer corte de
+    microservicios (ver `## Microservicios`). Las escrituras a `audit_log`
+    se quedan donde ya estaban (`routes/nodos.js`, `routes/session.js`,
+    `routes/admin.js`); este servicio solo centraliza la lectura.
   - `src/routes/nodos.js` — alta/edición/baja de hitos-tareas, cada cambio
     registrado en `audit_log`.
-  - `src/routes/admin.js` — usuarios/roles y bitácora (delega a
-    `sesionServer.js`), solicitud de proyecto.
+  - `src/routes/admin.js` — usuarios/roles (delega a `sesionServer.js`) y
+    lectura de bitácora (delega a `adminServer.js`), solicitud de proyecto
+    (escritura directa, reutiliza `audit_log`).
   - `src/routes/perfil.js` — resumen personal (tareas pendientes, proyectos
     activos, hitos realizados) para la vista "Mi Perfil".
   - Si Postgres no está disponible (o `DATABASE_URL` no está seteada), el
@@ -272,8 +279,8 @@ de aplicación más complejo de lo necesario.
 ## Microservicios
 
 Dirección de arquitectura confirmada: **el desarrollo futuro va hacia
-microservicios**, no hacia un monolito más grande. Dos cortes ya hechos,
-mismo patrón en ambos (mismo código que la API, distinto
+microservicios**, no hacia un monolito más grande. Tres cortes ya hechos,
+mismo patrón en todos (mismo código que la API, distinto
 `DATABASE_URL`/`DB_SCHEMA`, distinto Docker Command, sin ruteo por
 entorno):
 
@@ -290,12 +297,15 @@ entorno):
   esté disponible, solo hay que cambiar cómo este servicio valida la
   identidad (ticket de CAS en vez de "escribe tu correo"), sin tocar
   cookies ni el resto de la app.
+- **Administración/auditoría** (lectura de `audit_log`): `src/adminServer.js`,
+  desplegado como `panel-gestion-proyectos-{dev,prd}-admin`. Deliberadamente
+  solo lectura: las escrituras a `audit_log` (crear/editar/eliminar un
+  hito-tarea, cambiar de rol al "ver como", solicitar un proyecto) se
+  quedan en `server.js`, pegadas a la escritura principal de cada acción —
+  agregarles un salto de red aparte no ganaba nada. Lo único que se mueve
+  es la lectura (`GET /api/audit-log`, usada por Administración).
 
-Candidato para el próximo corte, cuando se aborde:
-
-- **Administración/auditoría** como su propio servicio de solo lectura.
-
-No se fragmenta sin necesidad concreta: dividir prematuramente, sin que un
+Sin nuevo candidato identificado por ahora. No se fragmenta sin necesidad concreta: dividir prematuramente, sin que un
 límite de responsabilidad real lo justifique, agrega complejidad operativa
 (más despliegues, más bases o colas, más latencia entre servicios) sin
 beneficio. La compartición forzada de una sola Postgres entre `/app/` y
@@ -433,6 +443,22 @@ no disponible" — fácil de perder tiempo depurando a ciegas). Sin
 cookies, CORS ni usuarios. Sin paso 4: nadie en el frontend le habla a este
 servicio, así que no hay `VITE_API_URL` que apuntarle — la URL nueva es para
 `PUSH_TARGETS_JSON` del watcher (`scripts/.env.example`), no para GitHub Pages.
+
+**Para un servicio de sesión en vez de la API**: mismo Root
+Directory/Dockerfile, Docker Command `npm run start:sesion`. Env vars:
+`DATABASE_URL`, `DB_SCHEMA`, `NODE_ENV=production`, `SESION_SECRET` (el
+mismo valor en el servicio de la API, en `SESION_URL`/`SESION_SECRET`),
+`BOOTSTRAP_ADMIN_EMAILS` y `VER_COMO_CORREOS` (estas dos las lee este
+servicio, no la API — ver `.env.example`). Sin `CORS_ORIGIN`/`COOKIE_SECRET`
+— este servicio nunca lo llama el navegador. En la API de ese mismo
+entorno: setear `SESION_URL` con la URL de este servicio nuevo, y
+`SESION_SECRET` con el mismo valor.
+
+**Para un servicio de administración en vez de la API**: mismo patrón,
+Docker Command `npm run start:admin`. Env vars: `DATABASE_URL`,
+`DB_SCHEMA`, `NODE_ENV=production`, `ADMIN_SECRET`. En la API de ese mismo
+entorno: setear `ADMIN_URL` con la URL de este servicio nuevo, y
+`ADMIN_SECRET` con el mismo valor.
 
 **Cuidado conocido:** el servicio Render de un branch productivo (ej.
 `main`) puede quedar corriendo código viejo simplemente porque nadie pusheó

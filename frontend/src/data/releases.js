@@ -1,5 +1,12 @@
 export const RELEASES = [
   {
+    version: "MVP 3.4",
+    status: "hecho",
+    items: [
+      "La lectura del historial de cambios (bitácora) en Administración ahora corre en su propio servicio interno, separado de la aplicación principal — mismo objetivo de robustez que las actualizaciones anteriores.",
+    ],
+  },
+  {
     version: "MVP 3.3",
     status: "hecho",
     items: [

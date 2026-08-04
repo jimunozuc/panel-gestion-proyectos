@@ -2,23 +2,25 @@ import { Router } from "express";
 import { pool } from "../db/pool.js";
 import { requireAdmin } from "../session.js";
 import { sesionFetch } from "../sesionClient.js";
+import { adminFetch } from "../adminClient.js";
 
 export const adminRouter = Router();
 
+// Delega a adminServer.js (servicio aparte, solo lectura — tercer corte de
+// microservicios, ver README ## Microservicios). Las escrituras a
+// audit_log se quedan donde ya estaban (nodos.js, session.js, y la
+// solicitud de proyecto más abajo en este mismo archivo).
 adminRouter.get("/audit-log", requireAdmin, async (req, res) => {
-  const limit = Math.min(Number(req.query.limit) || 100, 500);
-  const offset = Number(req.query.offset) || 0;
-  const entityType = req.query.entityType ? String(req.query.entityType) : null;
+  const params = new URLSearchParams();
+  if (req.query.limit) params.set("limit", req.query.limit);
+  if (req.query.offset) params.set("offset", req.query.offset);
+  if (req.query.entityType) params.set("entityType", req.query.entityType);
+  const qs = params.toString();
   try {
-    const { rows } = await pool.query(
-      `SELECT id, user_nombre, entity_type, entity_id, sheet_id, campo, valor_anterior, valor_nuevo, accion, created_at
-       FROM audit_log WHERE ($3::text IS NULL OR entity_type = $3)
-       ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
-      [limit, offset, entityType]
-    );
+    const rows = await adminFetch(`/internal/audit-log${qs ? `?${qs}` : ""}`);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 503).json({ error: err.message });
   }
 });
 

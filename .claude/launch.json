@@ -21,6 +21,13 @@
       "runtimeArgs": ["--prefix", "backend", "run", "dev:sesion"],
       "port": 3003,
       "autoPort": true
+    },
+    {
+      "name": "admin",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "backend", "run", "dev:admin"],
+      "port": 3004,
+      "autoPort": true
     }
   ]
 }
