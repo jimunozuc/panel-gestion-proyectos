@@ -147,6 +147,17 @@ body {
   border-radius: 4px;
 }
 
+/* Reset de <button>: para que "Iniciar sesión" (sin sesión activa) se vea
+   igual que los <Link> vecinos (Mi Perfil, Administración, App Releases). */
+.nav-rail-footer-link--button {
+  font: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
 .nav-content {
   flex: 1;
   min-width: 0;

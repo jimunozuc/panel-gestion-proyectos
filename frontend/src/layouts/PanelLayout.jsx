@@ -40,7 +40,7 @@ export default function PanelLayout() {
     proyectoId,
     proyecto,
   } = useNavContext();
-  const { user, logout } = useSession();
+  const { user, logout, ensureSession } = useSession();
 
   const crumbs = [];
   if (isContextoRoute) {
@@ -135,6 +135,15 @@ export default function PanelLayout() {
             <Link to="/admin" className="nav-rail-footer-link">
               Administración
             </Link>
+          )}
+          {!user && (
+            <button
+              type="button"
+              className="nav-rail-footer-link nav-rail-footer-link--button"
+              onClick={() => ensureSession().catch(() => {})}
+            >
+              Iniciar sesión
+            </button>
           )}
           <Link to="/app-releases" className="nav-rail-footer-link">
             App Releases
