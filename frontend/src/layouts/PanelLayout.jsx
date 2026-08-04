@@ -144,7 +144,11 @@ export default function PanelLayout() {
 
       <div className="nav-content">
         <div className="nav-content-inner">
-          {!sessionLoading && !user ? (
+          {sessionLoading ? (
+            <div className="content-card">
+              <p className="subtitle">Cargando…</p>
+            </div>
+          ) : !user ? (
             <div className="content-card">
               <p className="subtitle">Identifícate para ver el contenido del panel.</p>
               <button
