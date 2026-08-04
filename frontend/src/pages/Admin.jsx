@@ -44,20 +44,30 @@ export default function Admin() {
   const [createSaving, setCreateSaving] = useState(false);
   const [createError, setCreateError] = useState(null);
 
+  // Cada fetch se resuelve por separado (no Promise.all): usuarios
+  // (sesionServer.js) y bitácora/solicitudes (adminServer.js) son
+  // servicios distintos — si uno está caído o no desplegado todavía, no
+  // debe tapar la tabla del otro que sí funciona.
   const load = () => {
     setLoading(true);
     setError(null);
-    Promise.all([
-      apiFetch("/api/admin/users"),
-      apiFetch("/api/audit-log?limit=200&entityType=nodo"),
-      apiFetch("/api/audit-log?limit=200&entityType=proyecto_solicitud"),
-    ])
-      .then(([usersData, logData, solicitudesData]) => {
-        setUsers(usersData);
-        setLog(logData);
-        setSolicitudes(solicitudesData);
+    const secciones = [
+      { setter: setUsers, label: "usuarios", url: "/api/admin/users" },
+      { setter: setLog, label: "bitácora de cambios", url: "/api/audit-log?limit=200&entityType=nodo" },
+      { setter: setSolicitudes, label: "solicitudes de proyecto", url: "/api/audit-log?limit=200&entityType=proyecto_solicitud" },
+    ];
+    Promise.all(
+      secciones.map((s) =>
+        apiFetch(s.url)
+          .then(s.setter)
+          .then(() => null)
+          .catch(() => s.label)
+      )
+    )
+      .then((fallidas) => {
+        const errores = fallidas.filter(Boolean);
+        setError(errores.length ? `No se pudo cargar: ${errores.join(", ")}.` : null);
       })
-      .catch((err) => setError(err.message || "No se pudo cargar"))
       .finally(() => setLoading(false));
   };
 
