@@ -5,44 +5,56 @@ const SessionContext = createContext(null);
 
 export function SessionProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [prompt, setPrompt] = useState(null);
-
-  const refreshUsers = useCallback(() => {
-    apiFetch("/api/users")
-      .then(setUsers)
-      .catch(() => setUsers([]));
-  }, []);
+  const [puedeVerComo, setPuedeVerComo] = useState(false);
 
   useEffect(() => {
     apiFetch("/api/session")
-      .then((data) => setUser(data.user))
+      .then((data) => {
+        setUser(data.user);
+        setPuedeVerComo(!!data.puedeVerComo);
+      })
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
-    refreshUsers();
-  }, [refreshUsers]);
+  }, []);
 
-  const login = useCallback(
-    async (nombre) => {
-      const data = await apiFetch("/api/session/login", {
-        method: "POST",
-        body: JSON.stringify({ nombre }),
-      });
-      setUser(data.user);
-      refreshUsers();
-      return data.user;
-    },
-    [refreshUsers]
-  );
+  const login = useCallback(async (correo) => {
+    const data = await apiFetch("/api/session/login", {
+      method: "POST",
+      body: JSON.stringify({ correo }),
+    });
+    setUser(data.user);
+    setPuedeVerComo(!!data.puedeVerComo);
+    return data.user;
+  }, []);
 
   const logout = useCallback(async () => {
     await apiFetch("/api/session/logout", { method: "POST" });
     setUser(null);
   }, []);
 
-  // Se resuelve de inmediato si ya hay sesión; si no, abre el modal "¿Quién
-  // eres?" y queda pendiente hasta que la persona complete o cancele.
+  // "Ver como": cambia de verdad el rol que aplica el backend en esta
+  // sesión (auditado del lado del servidor) — solo disponible si
+  // puedeVerComo vino en true desde /api/session.
+  const verComo = useCallback(async (rol) => {
+    const data = await apiFetch("/api/session/ver-como", {
+      method: "POST",
+      body: JSON.stringify({ rol }),
+    });
+    const session = await apiFetch("/api/session");
+    setUser(session.user);
+    return data;
+  }, []);
+
+  const salirVerComo = useCallback(async () => {
+    await apiFetch("/api/session/ver-como/salir", { method: "POST" });
+    const session = await apiFetch("/api/session");
+    setUser(session.user);
+  }, []);
+
+  // Se resuelve de inmediato si ya hay sesión; si no, abre el modal
+  // "Identifícate" y queda pendiente hasta que la persona complete o cancele.
   const ensureSession = useCallback(() => {
     if (user) return Promise.resolve(user);
     return new Promise((resolve, reject) => {
@@ -51,8 +63,8 @@ export function SessionProvider({ children }) {
   }, [user]);
 
   const handlePromptSubmit = useCallback(
-    async (nombre) => {
-      const u = await login(nombre);
+    async (correo) => {
+      const u = await login(correo);
       prompt?.resolve(u);
       setPrompt(null);
     },
@@ -65,11 +77,11 @@ export function SessionProvider({ children }) {
   }, [prompt]);
 
   return (
-    <SessionContext.Provider value={{ user, users, loading, login, logout, ensureSession }}>
+    <SessionContext.Provider
+      value={{ user, loading, login, logout, ensureSession, puedeVerComo, verComo, salirVerComo }}
+    >
       {children}
-      {prompt && (
-        <LoginModal onSubmit={handlePromptSubmit} onCancel={handlePromptCancel} users={users} />
-      )}
+      {prompt && <LoginModal onSubmit={handlePromptSubmit} onCancel={handlePromptCancel} />}
     </SessionContext.Provider>
   );
 }
@@ -80,8 +92,8 @@ export function useSession() {
   return ctx;
 }
 
-function LoginModal({ onSubmit, onCancel, users }) {
-  const [nombre, setNombre] = useState("");
+function LoginModal({ onSubmit, onCancel }) {
+  const [correo, setCorreo] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef(null);
@@ -92,11 +104,11 @@ function LoginModal({ onSubmit, onCancel, users }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!nombre.trim()) return;
+    if (!correo.trim()) return;
     setSubmitting(true);
     setError(null);
     try {
-      await onSubmit(nombre.trim());
+      await onSubmit(correo.trim());
     } catch (err) {
       setError(err.message || "No se pudo iniciar sesión");
       setSubmitting(false);
@@ -106,31 +118,28 @@ function LoginModal({ onSubmit, onCancel, users }) {
   return (
     <div className="session-modal-backdrop" role="dialog" aria-modal="true" aria-label="Identifícate">
       <div className="session-modal">
-        <h2 className="session-modal-title">¿Quién eres?</h2>
+        <h2 className="session-modal-title">Identifícate</h2>
         <p className="session-modal-desc">
-          Para editar necesitamos saber quién eres — queda registrado en la bitácora de cambios.
+          Ingresa tu correo institucional. Si un administrador ya te dio de alta, entras con el
+          rol que te asignó — queda registrado en la bitácora de cambios.
         </p>
         <form onSubmit={submit}>
           <input
             ref={inputRef}
             className="session-modal-input"
-            list="session-users"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            placeholder="Tu nombre"
+            type="email"
+            autoComplete="email"
+            value={correo}
+            onChange={(e) => setCorreo(e.target.value)}
+            placeholder="tu.correo@uc.cl"
             disabled={submitting}
           />
-          <datalist id="session-users">
-            {users.map((u) => (
-              <option key={u.id} value={u.nombre} />
-            ))}
-          </datalist>
           {error && <p className="session-modal-error">{error}</p>}
           <div className="session-modal-actions">
             <button type="button" className="session-modal-cancel" onClick={onCancel} disabled={submitting}>
               Cancelar
             </button>
-            <button type="submit" className="session-modal-submit" disabled={submitting || !nombre.trim()}>
+            <button type="submit" className="session-modal-submit" disabled={submitting || !correo.trim()}>
               {submitting ? "Entrando..." : "Continuar"}
             </button>
           </div>

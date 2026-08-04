@@ -144,12 +144,34 @@ solo una parte esté activa — no se inventan datos para los que no los tienen.
     cuanto llega por el webhook (no al leerla) — de ahí en más, Postgres
     manda y `GET /api/iniciativas/:num` ya no depende del Excel en memoria
     salvo que Postgres mismo falle.
-  - `src/session.js`, `src/routes/session.js` — sesión por cookie, sin
-    contraseña; el primer usuario que entra en una base nueva queda
-    `administrador` automáticamente.
+  - `src/sesionServer.js` — servicio Render aparte para usuarios/roles
+    (login, listado, cambio de rol, "última conexión"/"última acción"),
+    desplegado como `panel-gestion-proyectos-{dev,prd}-sesion` — segundo
+    corte de microservicios (ver `## Microservicios`). Deliberadamente
+    puertas adentro: el navegador nunca lo llama directo (los subdominios
+    de Render no comparten cookies entre sí), `server.js` le delega esta
+    lógica por HTTP vía `src/sesionClient.js` y sigue siendo quien
+    emite/lee la cookie de sesión en su propio dominio.
+  - `src/session.js`, `src/routes/session.js` — cookie de sesión, sin
+    contraseña, y "ver como" (cambiar de rol temporalmente en la propia
+    sesión para probar restricciones — solo cuentas en `VER_COMO_CORREOS`,
+    auditado). Login por correo, aprovisionado de antemano por un
+    administrador desde `/admin` (correo + rol) — `BOOTSTRAP_ADMIN_EMAILS`
+    es la excepción para arrancar el primer administrador de un entorno
+    nuevo (lógica real en `sesionServer.js`).
+  - `src/adminServer.js` — servicio Render aparte, solo lectura, para la
+    bitácora (`audit_log`), desplegado como
+    `panel-gestion-proyectos-{dev,prd}-admin` — tercer corte de
+    microservicios (ver `## Microservicios`). Las escrituras a `audit_log`
+    se quedan donde ya estaban (`routes/nodos.js`, `routes/session.js`,
+    `routes/admin.js`); este servicio solo centraliza la lectura.
   - `src/routes/nodos.js` — alta/edición/baja de hitos-tareas, cada cambio
     registrado en `audit_log`.
-  - `src/routes/admin.js` — usuarios/roles, bitácora, solicitud de proyecto.
+  - `src/routes/admin.js` — usuarios/roles (delega a `sesionServer.js`) y
+    lectura de bitácora (delega a `adminServer.js`), solicitud de proyecto
+    (escritura directa, reutiliza `audit_log`).
+  - `src/routes/perfil.js` — resumen personal (tareas pendientes, proyectos
+    activos, hitos realizados) para la vista "Mi Perfil".
   - Si Postgres no está disponible (o `DATABASE_URL` no está seteada), el
     backend **no se cae**: degrada solo a lectura desde el Excel.
 - `scripts/` — `watch-and-push.mjs`, el watcher local que reemplaza a Power
@@ -257,18 +279,33 @@ de aplicación más complejo de lo necesario.
 ## Microservicios
 
 Dirección de arquitectura confirmada: **el desarrollo futuro va hacia
-microservicios**, no hacia un monolito más grande. Primer corte ya hecho:
-**ingesta de Excel** (parseo + webhook + import a Postgres) es hoy un
-servicio Render aparte (`src/ingestaServer.js`, desplegado como
-`panel-gestion-proyectos-{dev,prd}-ingesta`), sin código de ruteo por
-entorno — mismo patrón que los 2 backends de API (mismo código, distinto
-`DATABASE_URL`/`DB_SCHEMA`, distinto Docker Command). Candidatos para el
-próximo corte, cuando se aborde:
+microservicios**, no hacia un monolito más grande. Tres cortes ya hechos,
+mismo patrón en todos (mismo código que la API, distinto
+`DATABASE_URL`/`DB_SCHEMA`, distinto Docker Command, sin ruteo por
+entorno):
 
-- **Sesión/usuarios** separado de hitos/nodos.
-- **Administración/auditoría** como su propio servicio de solo lectura.
+- **Ingesta de Excel** (parseo + webhook + import a Postgres):
+  `src/ingestaServer.js`, desplegado como
+  `panel-gestion-proyectos-{dev,prd}-ingesta`.
+- **Sesión/usuarios** (login, roles, tracking de conexión/acción):
+  `src/sesionServer.js`, desplegado como
+  `panel-gestion-proyectos-{dev,prd}-sesion`. A diferencia de ingesta, este
+  servicio no lo llama nunca el navegador — la cookie de sesión sigue
+  viviendo en el dominio de la API (los subdominios de Render no la
+  comparten entre sí), así que `server.js` actúa como proxy delgado hacia
+  él. Esto también deja el camino listo para CAS más adelante: el día que
+  esté disponible, solo hay que cambiar cómo este servicio valida la
+  identidad (ticket de CAS en vez de "escribe tu correo"), sin tocar
+  cookies ni el resto de la app.
+- **Administración/auditoría** (lectura de `audit_log`): `src/adminServer.js`,
+  desplegado como `panel-gestion-proyectos-{dev,prd}-admin`. Deliberadamente
+  solo lectura: las escrituras a `audit_log` (crear/editar/eliminar un
+  hito-tarea, cambiar de rol al "ver como", solicitar un proyecto) se
+  quedan en `server.js`, pegadas a la escritura principal de cada acción —
+  agregarles un salto de red aparte no ganaba nada. Lo único que se mueve
+  es la lectura (`GET /api/audit-log`, usada por Administración).
 
-No se fragmenta sin necesidad concreta: dividir prematuramente, sin que un
+Sin nuevo candidato identificado por ahora. No se fragmenta sin necesidad concreta: dividir prematuramente, sin que un
 límite de responsabilidad real lo justifique, agrega complejidad operativa
 (más despliegues, más bases o colas, más latencia entre servicios) sin
 beneficio. La compartición forzada de una sola Postgres entre `/app/` y
@@ -386,10 +423,11 @@ Ver el runbook completo usado para `/dev/` y `/app/` — resumen:
 3. **Env vars** en el web service: `DATABASE_URL`, `DB_SCHEMA` (si aplica),
    `CORS_ORIGIN` (el origen exacto de GitHub Pages, sin path), `NODE_ENV=production`,
    `COOKIE_SECRET` (random), `REFRESH_SECRET` (random, para el webhook).
-   Opcional: `BOOTSTRAP_ADMIN_NAMES` (nombres separados por coma) para que
-   personas puntuales queden `administrador` automáticamente en cada login
-   en ese entorno, sin depender de "ser el primer usuario" ni de tocar la
-   base a mano.
+   Opcional: `BOOTSTRAP_ADMIN_EMAILS` (correos separados por coma) para que
+   personas puntuales queden `administrador` automáticamente la primera vez
+   que inicien sesión en ese entorno — mecanismo de arranque para el primer
+   administrador; el resto de las cuentas las da de alta un administrador
+   desde `/admin` (correo + rol) antes de que esa persona inicie sesión.
 4. En GitHub: variable de Actions `VITE_API_URL_<ENTORNO>` con la URL del
    servicio nuevo, y el build correspondiente en
    `.github/workflows/deploy-pages.yml` apuntando a esa variable.
@@ -401,10 +439,26 @@ Directory que su par API, mismo Dockerfile): en Advanced, **Docker Command**
 lee), `REFRESH_SECRET` y **`NODE_ENV=production`** (sin esta, `pool.js` no
 habilita SSL y la conexión falla de un modo indistinguible del típico "Postgres
 no disponible" — fácil de perder tiempo depurando a ciegas). Sin
-`CORS_ORIGIN`/`COOKIE_SECRET`/`BOOTSTRAP_ADMIN_NAMES` — ingesta no tiene
+`CORS_ORIGIN`/`COOKIE_SECRET`/`BOOTSTRAP_ADMIN_EMAILS` — ingesta no tiene
 cookies, CORS ni usuarios. Sin paso 4: nadie en el frontend le habla a este
 servicio, así que no hay `VITE_API_URL` que apuntarle — la URL nueva es para
 `PUSH_TARGETS_JSON` del watcher (`scripts/.env.example`), no para GitHub Pages.
+
+**Para un servicio de sesión en vez de la API**: mismo Root
+Directory/Dockerfile, Docker Command `npm run start:sesion`. Env vars:
+`DATABASE_URL`, `DB_SCHEMA`, `NODE_ENV=production`, `SESION_SECRET` (el
+mismo valor en el servicio de la API, en `SESION_URL`/`SESION_SECRET`),
+`BOOTSTRAP_ADMIN_EMAILS` y `VER_COMO_CORREOS` (estas dos las lee este
+servicio, no la API — ver `.env.example`). Sin `CORS_ORIGIN`/`COOKIE_SECRET`
+— este servicio nunca lo llama el navegador. En la API de ese mismo
+entorno: setear `SESION_URL` con la URL de este servicio nuevo, y
+`SESION_SECRET` con el mismo valor.
+
+**Para un servicio de administración en vez de la API**: mismo patrón,
+Docker Command `npm run start:admin`. Env vars: `DATABASE_URL`,
+`DB_SCHEMA`, `NODE_ENV=production`, `ADMIN_SECRET`. En la API de ese mismo
+entorno: setear `ADMIN_URL` con la URL de este servicio nuevo, y
+`ADMIN_SECRET` con el mismo valor.
 
 **Cuidado conocido:** el servicio Render de un branch productivo (ej.
 `main`) puede quedar corriendo código viejo simplemente porque nadie pusheó

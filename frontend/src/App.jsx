@@ -15,6 +15,7 @@ import Glosario from "./pages/Glosario.jsx";
 import AppReleases from "./pages/AppReleases.jsx";
 import ComoFunciona from "./pages/ComoFunciona.jsx";
 import Admin from "./pages/Admin.jsx";
+import Perfil from "./pages/Perfil.jsx";
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/seguimiento" element={<Seguimiento />} />
         <Route path="/seguimiento/tareas" element={<SeguimientoTareas />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/perfil" element={<Perfil />} />
         <Route path="/ejes/:ejeId" element={<EjeDetail />} />
         <Route path="/proyectos/:proyectoId" element={<ProyectoFicha />}>
           <Route index element={<Navigate to="kpi" replace />} />

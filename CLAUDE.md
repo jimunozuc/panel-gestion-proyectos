@@ -25,12 +25,15 @@ frontend/src/
   pages/EjeDetail.jsx        iniciativas de un objetivo, tarjetas 3 columnas (nivel 1→2)
   pages/ProyectoFicha.jsx    ficha de proyecto con las 7 vistas como tabs (nivel 3)
   pages/{Kpi,CartaGantt,ListadoHitos,DistribucionResponsable,Roadmap,MapaColor,Glosario}.jsx
+  pages/Perfil.jsx           resumen personal (tareas/proyectos/hitos) + agregar tarea + "ver como"
   data/plan.js               fuente de datos: objetivos, iniciativas, colores, descripciones
   data/panelPages.js         las 7 vistas del panel (slug, label, icon)
   data/releases.js           contenido de la pestaña "App Releases"
 backend/src/
   server.js                  Express, expone /api/iniciativas/:num (lee solo Postgres)
   ingestaServer.js            Express aparte, expone /api/webhook/refresh (servicio Render propio)
+  sesionServer.js             Express aparte, dueño de usuarios/roles (servicio Render propio,
+                               puertas adentro — server.js le delega vía sesionClient.js)
   parseWorkbook.js            parsea el Excel por NOMBRE de columna, no posición
 scripts/watch-and-push.mjs   watcher local (agente launchd) que empuja el Excel a los backends
 ```

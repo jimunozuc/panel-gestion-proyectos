@@ -7,6 +7,7 @@ import { attachUser } from "./session.js";
 import { sessionRouter } from "./routes/session.js";
 import { nodosRouter } from "./routes/nodos.js";
 import { adminRouter } from "./routes/admin.js";
+import { perfilRouter } from "./routes/perfil.js";
 import { loadSheetFromDb } from "./nodos.js";
 
 const app = express();
@@ -30,6 +31,7 @@ app.use(attachUser);
 app.use("/api", sessionRouter);
 app.use("/api", nodosRouter);
 app.use("/api", adminRouter);
+app.use("/api", perfilRouter);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });

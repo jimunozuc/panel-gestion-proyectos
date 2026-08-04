@@ -2,20 +2,6 @@ import BackButton from "../components/BackButton.jsx";
 
 const ENTORNOS = [
   {
-    tag: "Estable",
-    tagClass: "neutral",
-    icon: "visibility",
-    nombre: "Panel de consulta",
-    ruta: "/",
-    desc: "La versión de siempre. Muestra el avance del Plan tal como está en el Excel de seguimiento.",
-    items: [
-      "Solo lectura — nada se puede editar acá",
-      "Se actualiza sola cuando el equipo edita el Excel",
-      "Es la que usa hoy la mayoría del equipo",
-    ],
-    footer: "Para quien solo necesita mirar el estado del Plan.",
-  },
-  {
     tag: "Producción",
     tagClass: "hecho",
     icon: "edit",
@@ -38,7 +24,7 @@ const ENTORNOS = [
     desc: "Igual que la App con edición, pero para probar funciones nuevas antes de que lleguen a producción.",
     items: [
       "Los datos ahí pueden ser de prueba, no siempre reales",
-      "Cambios de acá nunca afectan a las otras dos versiones",
+      "Cambios de acá nunca afectan a la App con edición",
       "La usa el equipo que construye la app",
     ],
     footer: "Para probar cosas sin arriesgar nada real.",
@@ -46,27 +32,26 @@ const ENTORNOS = [
 ];
 
 const COMPARACION = [
-  ["Ver el avance del Plan", true, true, true],
-  ["Agregar o quitar hitos/tareas", false, true, true],
-  ["Historial de quién cambió qué", false, true, true],
-  ["Roles (administrador / editor / lector)", false, true, true],
+  ["Ver el avance del Plan", true, true],
+  ["Agregar o quitar hitos/tareas", true, true],
+  ["Historial de quién cambió qué", true, true],
+  ["Roles (administrador / editor / lector)", true, true],
 ];
 
 const POR_QUE = [
   {
     titulo: "Nada se rompe mientras se mejora",
     texto:
-      "Las funciones nuevas se prueban en la Sala de pruebas antes de llegar a la App con edición — y esta, a su vez, es independiente del Panel de consulta que el equipo ya usa todos los días.",
+      "Las funciones nuevas se prueban en la Sala de pruebas antes de llegar a la App con edición — así lo que usa el equipo todos los días nunca recibe un cambio sin probar primero.",
   },
   {
     titulo: "Cada una tiene un dueño claro",
-    texto:
-      "El Panel de consulta quedó fijo tal como funcionaba, sin mantenimiento activo. La App con edición es donde se sigue construyendo, con la Sala de pruebas como paso previo.",
+    texto: "La App con edición es la versión productiva. La Sala de pruebas es el paso previo antes de que algo llegue ahí.",
   },
   {
     titulo: "Migrar es progresivo, no de un día para otro",
     texto:
-      "El equipo puede seguir usando el Panel de consulta con total normalidad mientras se valida la App con edición — no hace falta un cambio abrupto.",
+      "El equipo puede seguir usando la App con edición con total normalidad mientras se valida algo nuevo en la Sala de pruebas — no hace falta un cambio abrupto.",
   },
   {
     titulo: "El Excel sigue siendo la costumbre de siempre",
@@ -78,9 +63,9 @@ const POR_QUE = [
 function FlowDiagram() {
   return (
     <svg
-      viewBox="0 0 960 420"
+      viewBox="0 0 960 300"
       role="img"
-      aria-label="Diagrama: el equipo edita el Excel del Plan, se sincroniza solo, y el Panel de Gestión reparte esos datos a las tres versiones: Panel de consulta, App con edición y Sala de pruebas."
+      aria-label="Diagrama: el equipo edita el Excel del Plan, se sincroniza solo, y el Panel de Gestión reparte esos datos a las dos versiones: App con edición y Sala de pruebas."
       className="flow-diagram-svg"
     >
       <defs>
@@ -89,51 +74,38 @@ function FlowDiagram() {
         </marker>
       </defs>
 
-      <line x1="212" y1="207" x2="248" y2="207" stroke="#57647a" strokeWidth="1.6" markerEnd="url(#cf-arrow)" />
-      <line x1="442" y1="207" x2="478" y2="207" stroke="#57647a" strokeWidth="1.6" markerEnd="url(#cf-arrow)" />
-      <line x1="652" y1="192" x2="726" y2="90" stroke="#57647a" strokeWidth="1.6" markerEnd="url(#cf-arrow)" />
-      <line x1="652" y1="207" x2="726" y2="212" stroke="#57647a" strokeWidth="1.6" markerEnd="url(#cf-arrow)" />
-      <line x1="652" y1="222" x2="726" y2="330" stroke="#57647a" strokeWidth="1.6" markerEnd="url(#cf-arrow)" />
-
-      <path d="M 930 195 C 966 210, 966 240, 930 232" fill="none" stroke="#57647a" strokeWidth="1.4" strokeDasharray="3 3" markerEnd="url(#cf-arrow)" />
-      <text x="880" y="270" fontSize="12.5" fill="#57647a" textAnchor="middle">
-        <tspan x="880" dy="0">lo que se edita acá</tspan>
-        <tspan x="880" dy="15">queda guardado ahí mismo</tspan>
-      </text>
+      <line x1="212" y1="137" x2="248" y2="137" stroke="#57647a" strokeWidth="1.6" markerEnd="url(#cf-arrow)" />
+      <line x1="442" y1="137" x2="478" y2="137" stroke="#57647a" strokeWidth="1.6" markerEnd="url(#cf-arrow)" />
+      <line x1="652" y1="122" x2="726" y2="90" stroke="#57647a" strokeWidth="1.6" markerEnd="url(#cf-arrow)" />
+      <line x1="652" y1="152" x2="726" y2="182" stroke="#57647a" strokeWidth="1.6" markerEnd="url(#cf-arrow)" />
 
       <g>
-        <rect x="20" y="175" width="190" height="64" rx="8" fill="#f7f9fc" stroke="#dfe5f0" />
-        <text x="115" y="202" textAnchor="middle" fontSize="13.5" fontWeight="600" fill="#12203a">Equipo UC edita</text>
-        <text x="115" y="220" textAnchor="middle" fontSize="13.5" fontWeight="600" fill="#12203a">el Excel del Plan</text>
+        <rect x="20" y="105" width="190" height="64" rx="8" fill="#f7f9fc" stroke="#dfe5f0" />
+        <text x="115" y="132" textAnchor="middle" fontSize="13.5" fontWeight="600" fill="#12203a">Equipo UC edita</text>
+        <text x="115" y="150" textAnchor="middle" fontSize="13.5" fontWeight="600" fill="#12203a">el Excel del Plan</text>
       </g>
 
       <g>
-        <rect x="250" y="175" width="190" height="64" rx="8" fill="#f7f9fc" stroke="#dfe5f0" />
-        <text x="345" y="202" textAnchor="middle" fontSize="13.5" fontWeight="600" fill="#12203a">Se sincroniza solo,</text>
-        <text x="345" y="220" textAnchor="middle" fontSize="13.5" fontWeight="600" fill="#12203a">sin pasos extra</text>
+        <rect x="250" y="105" width="190" height="64" rx="8" fill="#f7f9fc" stroke="#dfe5f0" />
+        <text x="345" y="132" textAnchor="middle" fontSize="13.5" fontWeight="600" fill="#12203a">Se sincroniza solo,</text>
+        <text x="345" y="150" textAnchor="middle" fontSize="13.5" fontWeight="600" fill="#12203a">sin pasos extra</text>
       </g>
 
       <g>
-        <rect x="480" y="175" width="170" height="64" rx="10" fill="#0176DE" stroke="#0176DE" />
-        <text x="565" y="212" textAnchor="middle" fontSize="14.5" fontWeight="700" fill="#fff">Panel de Gestión</text>
+        <rect x="480" y="105" width="170" height="64" rx="10" fill="#0176DE" stroke="#0176DE" />
+        <text x="565" y="142" textAnchor="middle" fontSize="14.5" fontWeight="700" fill="#fff">Panel de Gestión</text>
       </g>
 
       <g>
-        <rect x="730" y="40" width="200" height="66" rx="8" fill="#f1f5f9" stroke="#cbd5e1" />
-        <text x="830" y="66" textAnchor="middle" fontSize="13.5" fontWeight="600" fill="#12203a">Panel de consulta</text>
-        <text x="830" y="84" textAnchor="middle" fontSize="12.5" fill="#57647a">( / )</text>
+        <rect x="730" y="40" width="200" height="66" rx="8" fill="#dcfce7" stroke="#86d9ab" />
+        <text x="830" y="66" textAnchor="middle" fontSize="13.5" fontWeight="600" fill="#12203a">App con edición</text>
+        <text x="830" y="84" textAnchor="middle" fontSize="12.5" fill="#166534">( /app/ )</text>
       </g>
 
       <g>
-        <rect x="730" y="180" width="200" height="66" rx="8" fill="#dcfce7" stroke="#86d9ab" />
-        <text x="830" y="206" textAnchor="middle" fontSize="13.5" fontWeight="600" fill="#12203a">App con edición</text>
-        <text x="830" y="224" textAnchor="middle" fontSize="12.5" fill="#166534">( /app/ )</text>
-      </g>
-
-      <g>
-        <rect x="730" y="320" width="200" height="66" rx="8" fill="#fef3c7" stroke="#f0c869" />
-        <text x="830" y="346" textAnchor="middle" fontSize="13.5" fontWeight="600" fill="#12203a">Sala de pruebas</text>
-        <text x="830" y="364" textAnchor="middle" fontSize="12.5" fill="#92400e">( /dev/ )</text>
+        <rect x="730" y="180" width="200" height="66" rx="8" fill="#fef3c7" stroke="#f0c869" />
+        <text x="830" y="206" textAnchor="middle" fontSize="13.5" fontWeight="600" fill="#12203a">Sala de pruebas</text>
+        <text x="830" y="224" textAnchor="middle" fontSize="12.5" fill="#92400e">( /dev/ )</text>
       </g>
     </svg>
   );
@@ -145,15 +117,15 @@ export default function ComoFunciona() {
       <BackButton to="/app-releases" label="← Volver a App Releases" />
       <h1>Cómo funciona el Panel de Gestión</h1>
       <p className="subtitle">
-        Si nunca usaste esta app, esto explica qué son las tres versiones que vas a
+        Si nunca usaste esta app, esto explica qué son las dos versiones que vas a
         encontrar, para qué sirve cada una y por qué existen separadas en lugar de una sola.
       </p>
 
       <section className="cf-section">
-        <h2>Las tres versiones</h2>
+        <h2>Las dos versiones</h2>
         <p className="cf-section-intro">
-          Las tres muestran el mismo Plan Estratégico. Lo que cambia es si podés solo
-          mirar o también editar, y qué tan probada está cada una.
+          Las dos muestran el mismo Plan Estratégico. Lo que cambia es qué tan probada
+          está cada una.
         </p>
         <div className="env-cards">
           {ENTORNOS.map((e) => (
@@ -195,7 +167,6 @@ export default function ComoFunciona() {
           <thead>
             <tr>
               <th>&nbsp;</th>
-              <th>Panel de consulta</th>
               <th>App con edición</th>
               <th>Sala de pruebas</th>
             </tr>
@@ -221,7 +192,7 @@ export default function ComoFunciona() {
       </section>
 
       <section className="cf-section">
-        <h2>Por qué tres versiones y no una sola</h2>
+        <h2>Por qué dos versiones y no una sola</h2>
         <div className="cf-why-grid">
           {POR_QUE.map((p) => (
             <div key={p.titulo} className="cf-why-item">

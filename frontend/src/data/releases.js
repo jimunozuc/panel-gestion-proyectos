@@ -1,5 +1,30 @@
 export const RELEASES = [
   {
+    version: "MVP 3.4",
+    status: "hecho",
+    items: [
+      "La lectura del historial de cambios (bitácora) en Administración ahora corre en su propio servicio interno, separado de la aplicación principal — mismo objetivo de robustez que las actualizaciones anteriores.",
+    ],
+  },
+  {
+    version: "MVP 3.3",
+    status: "hecho",
+    items: [
+      "Nueva vista \"Mi Perfil\": cada persona puede ver cuántas tareas tiene pendientes, en cuántos proyectos está activa y cuántos hitos ha completado — y agregar una tarea nueva directamente ahí.",
+      "La tabla de usuarios en Administración ahora también muestra la última conexión y la última acción de cada persona.",
+      "El inicio de sesión y la gestión de usuarios ahora corren en su propio servicio interno, separado de la aplicación principal — mismo objetivo de robustez que la actualización automática de datos.",
+      "La página \"Cómo funciona\" se actualizó para describir solo las dos versiones vigentes con edición (producción y pruebas).",
+    ],
+  },
+  {
+    version: "MVP 3.2",
+    status: "hecho",
+    items: [
+      "La actualización automática de datos desde el archivo de seguimiento ahora corre en un servicio propio, separado de la aplicación principal — más robusto, sin afectar el uso normal de la app mientras se actualizan los datos.",
+      "Actualización de seguridad de una librería interna de navegación de la aplicación (sin cambios visibles para quien la usa).",
+    ],
+  },
+  {
     version: "MVP 3.1",
     status: "hecho",
     items: [

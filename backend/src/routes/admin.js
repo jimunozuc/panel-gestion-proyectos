@@ -1,23 +1,26 @@
 import { Router } from "express";
 import { pool } from "../db/pool.js";
 import { requireAdmin } from "../session.js";
+import { sesionFetch } from "../sesionClient.js";
+import { adminFetch } from "../adminClient.js";
 
 export const adminRouter = Router();
 
+// Delega a adminServer.js (servicio aparte, solo lectura — tercer corte de
+// microservicios, ver README ## Microservicios). Las escrituras a
+// audit_log se quedan donde ya estaban (nodos.js, session.js, y la
+// solicitud de proyecto más abajo en este mismo archivo).
 adminRouter.get("/audit-log", requireAdmin, async (req, res) => {
-  const limit = Math.min(Number(req.query.limit) || 100, 500);
-  const offset = Number(req.query.offset) || 0;
-  const entityType = req.query.entityType ? String(req.query.entityType) : null;
+  const params = new URLSearchParams();
+  if (req.query.limit) params.set("limit", req.query.limit);
+  if (req.query.offset) params.set("offset", req.query.offset);
+  if (req.query.entityType) params.set("entityType", req.query.entityType);
+  const qs = params.toString();
   try {
-    const { rows } = await pool.query(
-      `SELECT id, user_nombre, entity_type, entity_id, sheet_id, campo, valor_anterior, valor_nuevo, accion, created_at
-       FROM audit_log WHERE ($3::text IS NULL OR entity_type = $3)
-       ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
-      [limit, offset, entityType]
-    );
+    const rows = await adminFetch(`/internal/audit-log${qs ? `?${qs}` : ""}`);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 503).json({ error: err.message });
   }
 });
 
@@ -50,33 +53,76 @@ adminRouter.post("/admin/proyecto-solicitudes", requireAdmin, async (req, res) =
   }
 });
 
+// Delega a sesionServer.js (servicio aparte): dueño real de usuarios/roles
+// y de "última conexión"/"última acción" (ver README ## Microservicios).
 adminRouter.get("/admin/users", requireAdmin, async (req, res) => {
   try {
-    const { rows } = await pool.query("SELECT id, nombre, rol, created_at FROM users ORDER BY nombre");
-    res.json(rows);
+    const users = await sesionFetch("/internal/admin/users");
+    res.json(users);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 503).json({ error: err.message });
   }
 });
 
-adminRouter.patch("/admin/users/:id", requireAdmin, async (req, res) => {
-  const id = Number(req.params.id);
+// Da de alta una cuenta ANTES de su primer login — el admin decide
+// correo+rol de antemano (ver sesionServer.js, ya no hay creación
+// automática al loguearse con un correo desconocido).
+adminRouter.post("/admin/users", requireAdmin, async (req, res) => {
+  const correo = String(req.body?.correo || "").trim();
+  const nombre = String(req.body?.nombre || "").trim();
   const rol = req.body?.rol;
+  if (!correo) {
+    res.status(400).json({ error: "Falta el correo" });
+    return;
+  }
   if (!["administrador", "editor", "lector"].includes(rol)) {
     res.status(400).json({ error: "Rol inválido" });
     return;
   }
   try {
-    const { rows } = await pool.query(
-      "UPDATE users SET rol = $1 WHERE id = $2 RETURNING id, nombre, rol",
-      [rol, id]
-    );
-    if (!rows[0]) {
-      res.status(404).json({ error: "No existe" });
+    const user = await sesionFetch("/internal/admin/users", {
+      method: "POST",
+      body: JSON.stringify({ correo, nombre, rol }),
+    });
+    res.status(201).json(user);
+  } catch (err) {
+    res.status(err.status || 503).json({ error: err.message });
+  }
+});
+
+// rol, nombre y activo son independientes — el body trae solo los campos
+// que cambian (ej. el toggle de activo no reenvía el rol).
+adminRouter.patch("/admin/users/:id", requireAdmin, async (req, res) => {
+  const body = req.body || {};
+  const patch = {};
+  if (body.rol !== undefined) {
+    if (!["administrador", "editor", "lector"].includes(body.rol)) {
+      res.status(400).json({ error: "Rol inválido" });
       return;
     }
-    res.json(rows[0]);
+    patch.rol = body.rol;
+  }
+  if (body.nombre !== undefined) {
+    patch.nombre = body.nombre;
+  }
+  if (body.activo !== undefined) {
+    if (typeof body.activo !== "boolean") {
+      res.status(400).json({ error: "activo debe ser boolean" });
+      return;
+    }
+    patch.activo = body.activo;
+  }
+  if (Object.keys(patch).length === 0) {
+    res.status(400).json({ error: "Nada para actualizar" });
+    return;
+  }
+  try {
+    const user = await sesionFetch(`/internal/admin/users/${Number(req.params.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    });
+    res.json(user);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 503).json({ error: err.message });
   }
 });
