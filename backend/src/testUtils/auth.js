@@ -9,17 +9,22 @@ import { sesionFetch } from "../sesionClient.js";
 
 let seq = 0;
 
-export async function provisionUser({ correo, nombre = "", rol = "editor" } = {}) {
+// Contraseña fija de prueba: a estos tests no les importa cuál es, solo que
+// alta y login usen la misma (ver docs/plan-pruebas.md, SEG-01).
+export const TEST_PASSWORD = "clave-de-prueba-1";
+
+export async function provisionUser({ correo, nombre = "", rol = "editor", password = TEST_PASSWORD } = {}) {
   const correoFinal = correo || `test-${++seq}@example.com`;
   return sesionFetch("/internal/admin/users", {
     method: "POST",
-    body: JSON.stringify({ correo: correoFinal, nombre, rol }),
+    body: JSON.stringify({ correo: correoFinal, nombre, rol, password }),
   });
 }
 
 export async function provisionAndLogin(app, overrides = {}) {
-  const user = await provisionUser(overrides);
+  const password = overrides.password || TEST_PASSWORD;
+  const user = await provisionUser({ ...overrides, password });
   const agent = request.agent(app);
-  await agent.post("/api/session/login").send({ correo: user.correo }).expect(200);
+  await agent.post("/api/session/login").send({ correo: user.correo, password }).expect(200);
   return { agent, user };
 }

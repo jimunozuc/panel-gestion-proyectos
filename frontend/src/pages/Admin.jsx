@@ -27,7 +27,7 @@ function labelIniciativa(ejeId, iniciativaId) {
 }
 
 const SOLICITUD_INICIAL = { ejeId: "", iniciativaId: "", nombre: "", responsable: "", descripcion: "" };
-const CREATE_USER_INICIAL = { correo: "", nombre: "", rol: "lector" };
+const CREATE_USER_INICIAL = { correo: "", nombre: "", rol: "lector", password: "" };
 
 export default function Admin() {
   const { user, loading: sessionLoading } = useSession();
@@ -43,6 +43,9 @@ export default function Admin() {
   const [createForm, setCreateForm] = useState(CREATE_USER_INICIAL);
   const [createSaving, setCreateSaving] = useState(false);
   const [createError, setCreateError] = useState(null);
+  const [resetPasswordId, setResetPasswordId] = useState(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
+  const [resetPasswordError, setResetPasswordError] = useState(null);
 
   // Cada fetch se resuelve por separado (no Promise.all): usuarios
   // (sesionServer.js) y bitácora/solicitudes (adminServer.js) son
@@ -118,6 +121,37 @@ export default function Admin() {
 
   const setCreateField = (field) => (e) =>
     setCreateForm((f) => ({ ...f, [field]: e.target.value }));
+
+  const startResetPassword = (id) => {
+    setResetPasswordId(id);
+    setResetPasswordValue("");
+    setResetPasswordError(null);
+  };
+
+  const cancelResetPassword = () => {
+    setResetPasswordId(null);
+    setResetPasswordValue("");
+    setResetPasswordError(null);
+  };
+
+  const submitResetPassword = async (id) => {
+    if (resetPasswordValue.length < 8) {
+      setResetPasswordError("Mínimo 8 caracteres");
+      return;
+    }
+    setSavingId(id);
+    try {
+      await apiFetch(`/api/admin/users/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ password: resetPasswordValue }),
+      });
+      cancelResetPassword();
+    } catch (err) {
+      setResetPasswordError(err.message || "No se pudo restablecer la contraseña");
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   const submitCreate = async (e) => {
     e.preventDefault();
@@ -200,6 +234,7 @@ export default function Admin() {
                     <th>Desde</th>
                     <th>Última conexión</th>
                     <th>Última acción</th>
+                    <th>Contraseña</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -243,11 +278,53 @@ export default function Admin() {
                       <td>{fmtDateTime(u.created_at)}</td>
                       <td>{fmtDateTime(u.last_login_at)}</td>
                       <td>{u.last_action ? `${u.last_action} · ${fmtDateTime(u.last_action_at)}` : "—"}</td>
+                      <td>
+                        {resetPasswordId === u.id ? (
+                          <div className="admin-reset-password">
+                            <input
+                              type="password"
+                              className="admin-reset-password-input"
+                              value={resetPasswordValue}
+                              onChange={(e) => setResetPasswordValue(e.target.value)}
+                              placeholder="Nueva contraseña"
+                              minLength={8}
+                              disabled={savingId === u.id}
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              className="admin-reset-password-btn"
+                              onClick={() => submitResetPassword(u.id)}
+                              disabled={savingId === u.id}
+                            >
+                              Guardar
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-reset-password-btn"
+                              onClick={cancelResetPassword}
+                              disabled={savingId === u.id}
+                            >
+                              Cancelar
+                            </button>
+                            {resetPasswordError && <p className="admin-error">{resetPasswordError}</p>}
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="admin-reset-password-btn"
+                            onClick={() => startResetPassword(u.id)}
+                            disabled={savingId === u.id}
+                          >
+                            Restablecer
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                   {users.length === 0 && (
                     <tr>
-                      <td colSpan={7}>Todavía no hay usuarios registrados.</td>
+                      <td colSpan={8}>Todavía no hay usuarios registrados.</td>
                     </tr>
                   )}
                 </tbody>
@@ -268,6 +345,18 @@ export default function Admin() {
                   onChange={setCreateField("correo")}
                   disabled={createSaving}
                   placeholder="nombre.apellido@uc.cl"
+                  required
+                />
+              </label>
+              <label className="edit-nodo-field">
+                Contraseña inicial
+                <input
+                  type="password"
+                  value={createForm.password}
+                  onChange={setCreateField("password")}
+                  disabled={createSaving}
+                  placeholder="Mínimo 8 caracteres"
+                  minLength={8}
                   required
                 />
               </label>

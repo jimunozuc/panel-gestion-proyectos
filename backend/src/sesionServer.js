@@ -1,6 +1,37 @@
 import express from "express";
 import { pool } from "./db/pool.js";
 import { runMigrations } from "./db/migrate.js";
+import { hashPassword, verifyPassword } from "./passwordHash.js";
+
+const MIN_PASSWORD_LENGTH = 8;
+
+// Freno de fuerza bruta en memoria: alcanza porque este servicio corre en un
+// solo proceso (ver docs/plan-pruebas.md, ESC-03) -- no necesita Redis ni
+// nada compartido entre instancias mientras eso siga así.
+const LOGIN_MAX_INTENTOS = 5;
+const LOGIN_BLOQUEO_MS = 15 * 60 * 1000;
+const intentosFallidos = new Map();
+
+function loginBloqueado(correo) {
+  const estado = intentosFallidos.get(correo);
+  if (!estado?.bloqueadoHasta) return false;
+  if (estado.bloqueadoHasta > Date.now()) return true;
+  intentosFallidos.delete(correo);
+  return false;
+}
+
+function registrarIntentoFallido(correo) {
+  const estado = intentosFallidos.get(correo) || { count: 0, bloqueadoHasta: null };
+  estado.count += 1;
+  if (estado.count >= LOGIN_MAX_INTENTOS) {
+    estado.bloqueadoHasta = Date.now() + LOGIN_BLOQUEO_MS;
+  }
+  intentosFallidos.set(correo, estado);
+}
+
+function registrarIntentoExitoso(correo) {
+  intentosFallidos.delete(correo);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -52,6 +83,7 @@ app.post("/internal/admin/users", async (req, res) => {
   const correo = String(req.body?.correo || "").trim().toLowerCase();
   const nombre = String(req.body?.nombre || "").trim();
   const rol = req.body?.rol;
+  const password = String(req.body?.password || "");
   if (!correo || !CORREO_RE.test(correo)) {
     res.status(400).json({ error: "Correo inválido" });
     return;
@@ -60,12 +92,17 @@ app.post("/internal/admin/users", async (req, res) => {
     res.status(400).json({ error: "Rol inválido" });
     return;
   }
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    res.status(400).json({ error: `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres` });
+    return;
+  }
   try {
+    const passwordHash = await hashPassword(password);
     const { rows } = await pool.query(
-      `INSERT INTO users (correo, nombre, rol, activo)
-       VALUES ($1, $2, $3, true)
+      `INSERT INTO users (correo, nombre, rol, activo, password_hash, must_change_password)
+       VALUES ($1, $2, $3, true, $4, true)
        RETURNING id, nombre, correo, rol, activo, created_at, last_login_at`,
-      [correo, nombre || correo, rol]
+      [correo, nombre || correo, rol, passwordHash]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -110,8 +147,21 @@ app.patch("/internal/admin/users/:id", async (req, res) => {
     values.push(body.activo);
     sets.push(`activo = $${values.length}`);
   }
+  if (body.password !== undefined) {
+    const password = String(body.password || "");
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      res.status(400).json({ error: `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres` });
+      return;
+    }
+    values.push(await hashPassword(password));
+    sets.push(`password_hash = $${values.length}`);
+    // La elige un administrador, no la propia persona -- debe cambiarla en
+    // su próximo login (a diferencia de POST /internal/change-password,
+    // que la persona usa para elegir la suya y sí puede confiar en ella).
+    sets.push(`must_change_password = true`);
+  }
   if (sets.length === 0) {
-    res.status(400).json({ error: "Nada para actualizar (rol, nombre y/o activo)" });
+    res.status(400).json({ error: "Nada para actualizar (rol, nombre, activo y/o password)" });
     return;
   }
 
@@ -132,16 +182,51 @@ app.patch("/internal/admin/users/:id", async (req, res) => {
   }
 });
 
-// Sin contraseña, aprovisionado por un administrador: un correo solo puede
-// iniciar sesión si ya tiene una fila en `users` (creada desde Admin.jsx) o
-// si está en BOOTSTRAP_ADMIN_EMAILS. Ya no existe "el primer usuario del
-// sistema queda administrador" ni "se crea la cuenta al vuelo con
-// cualquier nombre": correo no reconocido y no bootstrap = 403.
-// BOOTSTRAP_ADMIN_EMAILS (env var, correos separados por coma) es el
-// mecanismo de arranque: sin él, nadie podría darse de alta a sí mismo como
-// el primer administrador. Se aplica en cada login, no solo al crear la
-// cuenta (si se agrega un correo a la lista después de que esa cuenta ya
-// existía con otro rol, el próximo login la vuelve a promover).
+// La persona elige su propia contraseña (a diferencia del PATCH de arriba,
+// que la fija un administrador y por eso vuelve a exigir cambiarla) -- por
+// eso esta sí limpia must_change_password. server.js llama esto ya
+// autenticado (requireUser en routes/session.js), nunca antes de un login
+// válido.
+app.post("/internal/change-password", async (req, res) => {
+  const id = Number(req.body?.id);
+  const password = String(req.body?.password || "");
+  if (!id) {
+    res.status(400).json({ error: "Falta el id" });
+    return;
+  }
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    res.status(400).json({ error: `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres` });
+    return;
+  }
+  try {
+    const passwordHash = await hashPassword(password);
+    const { rows } = await pool.query(
+      `UPDATE users SET password_hash = $1, must_change_password = false WHERE id = $2
+       RETURNING id, nombre, correo, rol, activo, must_change_password`,
+      [passwordHash, id]
+    );
+    if (!rows[0]) {
+      res.status(404).json({ error: "No existe" });
+      return;
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Aprovisionado por un administrador: un correo solo puede iniciar sesión
+// si ya tiene una fila en `users` (creada desde Admin.jsx, con contraseña
+// asignada ahí) o si está en BOOTSTRAP_ADMIN_EMAILS. Correo no reconocido y
+// no bootstrap = 403. BOOTSTRAP_ADMIN_EMAILS (env var, correos separados
+// por coma) es el mecanismo de arranque: sin él, nadie podría darse de alta
+// a sí mismo como el primer administrador. Se aplica en cada login, no solo
+// al crear la cuenta (si se agrega un correo a la lista después de que esa
+// cuenta ya existía con otro rol, el próximo login la vuelve a promover).
+//
+// Contraseña: solución interina hasta integrar CAS/SSO institucional (ver
+// 004_users_correo_activo.sql y 005_users_password.sql) -- verificar solo el
+// correo dejaba entrar a cualquiera que lo conociera, incluido un admin.
 const CORREO_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function bootstrapAdminEmails() {
@@ -154,6 +239,7 @@ function bootstrapAdminEmails() {
 app.post("/internal/login", async (req, res) => {
   const correo = String(req.body?.correo || "").trim().toLowerCase();
   const nombre = String(req.body?.nombre || "").trim();
+  const password = String(req.body?.password || "");
   if (!correo) {
     res.status(400).json({ error: "Falta el correo" });
     return;
@@ -162,10 +248,18 @@ app.post("/internal/login", async (req, res) => {
     res.status(400).json({ error: "Correo inválido" });
     return;
   }
+  if (!password) {
+    res.status(400).json({ error: "Falta la contraseña" });
+    return;
+  }
+  if (loginBloqueado(correo)) {
+    res.status(429).json({ error: "Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo." });
+    return;
+  }
 
   try {
     const existing = await pool.query(
-      "SELECT id, nombre, rol, correo, activo FROM users WHERE correo = $1",
+      "SELECT id, nombre, rol, correo, activo, password_hash, must_change_password FROM users WHERE correo = $1",
       [correo]
     );
     let user = existing.rows[0];
@@ -178,29 +272,51 @@ app.post("/internal/login", async (req, res) => {
         });
         return;
       }
-      const inserted = await pool.query(
-        `INSERT INTO users (correo, nombre, rol, activo, last_login_at)
-         VALUES ($1, $2, 'administrador', true, now())
-         RETURNING id, nombre, rol, correo, activo`,
-        [correo, nombre || correo]
-      );
-      user = inserted.rows[0];
-    } else {
-      if (!user.activo) {
-        res.status(403).json({ error: "Tu cuenta está desactivada. Contacta a un administrador." });
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        res.status(400).json({ error: `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres` });
         return;
       }
-      if (isBootstrapAdmin && user.rol !== "administrador") {
-        const updated = await pool.query(
-          "UPDATE users SET rol = 'administrador' WHERE id = $1 RETURNING id, nombre, rol, correo, activo",
-          [user.id]
-        );
-        user = updated.rows[0];
-      }
-      await pool.query("UPDATE users SET last_login_at = now() WHERE id = $1", [user.id]);
+      const passwordHash = await hashPassword(password);
+      const inserted = await pool.query(
+        `INSERT INTO users (correo, nombre, rol, activo, password_hash, last_login_at)
+         VALUES ($1, $2, 'administrador', true, $3, now())
+         RETURNING id, nombre, rol, correo, activo, must_change_password`,
+        [correo, nombre || correo, passwordHash]
+      );
+      registrarIntentoExitoso(correo);
+      res.json({ user: inserted.rows[0] });
+      return;
     }
 
-    res.json({ user });
+    if (!user.activo) {
+      res.status(403).json({ error: "Tu cuenta está desactivada. Contacta a un administrador." });
+      return;
+    }
+    if (!user.password_hash) {
+      res.status(403).json({
+        error: "Tu cuenta todavía no tiene contraseña asignada. Pide a un administrador que te asigne una.",
+      });
+      return;
+    }
+    if (!(await verifyPassword(password, user.password_hash))) {
+      registrarIntentoFallido(correo);
+      res.status(401).json({ error: "Correo o contraseña incorrectos" });
+      return;
+    }
+    registrarIntentoExitoso(correo);
+
+    if (isBootstrapAdmin && user.rol !== "administrador") {
+      const updated = await pool.query(
+        `UPDATE users SET rol = 'administrador' WHERE id = $1
+         RETURNING id, nombre, rol, correo, activo, must_change_password`,
+        [user.id]
+      );
+      user = updated.rows[0];
+    }
+    await pool.query("UPDATE users SET last_login_at = now() WHERE id = $1", [user.id]);
+
+    const { password_hash, ...userSinHash } = user;
+    res.json({ user: userSinHash });
   } catch (err) {
     res.status(503).json({ error: "Base de datos no disponible" });
   }

@@ -71,6 +71,7 @@ adminRouter.post("/admin/users", requireAdmin, async (req, res) => {
   const correo = String(req.body?.correo || "").trim();
   const nombre = String(req.body?.nombre || "").trim();
   const rol = req.body?.rol;
+  const password = String(req.body?.password || "");
   if (!correo) {
     res.status(400).json({ error: "Falta el correo" });
     return;
@@ -79,10 +80,14 @@ adminRouter.post("/admin/users", requireAdmin, async (req, res) => {
     res.status(400).json({ error: "Rol inválido" });
     return;
   }
+  if (password.length < 8) {
+    res.status(400).json({ error: "La contraseña debe tener al menos 8 caracteres" });
+    return;
+  }
   try {
     const user = await sesionFetch("/internal/admin/users", {
       method: "POST",
-      body: JSON.stringify({ correo, nombre, rol }),
+      body: JSON.stringify({ correo, nombre, rol, password }),
     });
     res.status(201).json(user);
   } catch (err) {
@@ -111,6 +116,13 @@ adminRouter.patch("/admin/users/:id", requireAdmin, async (req, res) => {
       return;
     }
     patch.activo = body.activo;
+  }
+  if (body.password !== undefined) {
+    if (!body.password || body.password.length < 8) {
+      res.status(400).json({ error: "La contraseña debe tener al menos 8 caracteres" });
+      return;
+    }
+    patch.password = body.password;
   }
   if (Object.keys(patch).length === 0) {
     res.status(400).json({ error: "Nada para actualizar" });

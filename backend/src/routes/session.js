@@ -1,6 +1,13 @@
 import { Router } from "express";
 import { pool } from "../db/pool.js";
-import { setSessionCookie, clearSessionCookie, puedeVerComo, setVerComoCookie, clearVerComoCookie } from "../session.js";
+import {
+  setSessionCookie,
+  clearSessionCookie,
+  puedeVerComo,
+  setVerComoCookie,
+  clearVerComoCookie,
+  requireUser,
+} from "../session.js";
 import { sesionFetch } from "../sesionClient.js";
 
 export const sessionRouter = Router();
@@ -11,17 +18,43 @@ sessionRouter.get("/session", (req, res) => {
 
 sessionRouter.post("/session/login", async (req, res) => {
   const correo = String(req.body?.correo || "").trim();
+  const password = String(req.body?.password || "");
   if (!correo) {
     res.status(400).json({ error: "Falta el correo" });
+    return;
+  }
+  if (!password) {
+    res.status(400).json({ error: "Falta la contraseña" });
     return;
   }
   try {
     const { user } = await sesionFetch("/internal/login", {
       method: "POST",
-      body: JSON.stringify({ correo }),
+      body: JSON.stringify({ correo, password }),
     });
     setSessionCookie(res, user.id);
     res.json({ user, puedeVerComo: puedeVerComo(user) });
+  } catch (err) {
+    res.status(err.status || 503).json({ error: err.message });
+  }
+});
+
+// Autenticada por sesión, no por conocer la contraseña anterior: quien la
+// llama ya demostró ser dueño de la cuenta al iniciar sesión (ver
+// docs/plan-pruebas.md, SEG-01) -- pensada para el cambio forzado tras una
+// contraseña asignada por un administrador, no como página de "mi cuenta".
+sessionRouter.post("/session/password", requireUser, async (req, res) => {
+  const password = String(req.body?.password || "");
+  if (!password) {
+    res.status(400).json({ error: "Falta la contraseña" });
+    return;
+  }
+  try {
+    const user = await sesionFetch("/internal/change-password", {
+      method: "POST",
+      body: JSON.stringify({ id: req.user.id, password }),
+    });
+    res.json({ user });
   } catch (err) {
     res.status(err.status || 503).json({ error: err.message });
   }

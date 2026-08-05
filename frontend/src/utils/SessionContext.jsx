@@ -19,10 +19,10 @@ export function SessionProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = useCallback(async (correo) => {
+  const login = useCallback(async (correo, password) => {
     const data = await apiFetch("/api/session/login", {
       method: "POST",
-      body: JSON.stringify({ correo }),
+      body: JSON.stringify({ correo, password }),
     });
     setUser(data.user);
     setPuedeVerComo(!!data.puedeVerComo);
@@ -32,6 +32,18 @@ export function SessionProvider({ children }) {
   const logout = useCallback(async () => {
     await apiFetch("/api/session/logout", { method: "POST" });
     setUser(null);
+  }, []);
+
+  // Contraseña asignada por un administrador (alta o restablecimiento):
+  // must_change_password llega en true y ChangePasswordModal se muestra
+  // sola, sin opción de cancelar, hasta que esto resuelva.
+  const changePassword = useCallback(async (password) => {
+    const data = await apiFetch("/api/session/password", {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    });
+    setUser(data.user);
+    return data.user;
   }, []);
 
   // "Ver como": cambia de verdad el rol que aplica el backend en esta
@@ -63,8 +75,8 @@ export function SessionProvider({ children }) {
   }, [user]);
 
   const handlePromptSubmit = useCallback(
-    async (correo) => {
-      const u = await login(correo);
+    async (correo, password) => {
+      const u = await login(correo, password);
       prompt?.resolve(u);
       setPrompt(null);
     },
@@ -78,10 +90,11 @@ export function SessionProvider({ children }) {
 
   return (
     <SessionContext.Provider
-      value={{ user, loading, login, logout, ensureSession, puedeVerComo, verComo, salirVerComo }}
+      value={{ user, loading, login, logout, changePassword, ensureSession, puedeVerComo, verComo, salirVerComo }}
     >
       {children}
       {prompt && <LoginModal onSubmit={handlePromptSubmit} onCancel={handlePromptCancel} />}
+      {user?.must_change_password && <ChangePasswordModal onSubmit={changePassword} />}
     </SessionContext.Provider>
   );
 }
@@ -94,6 +107,7 @@ export function useSession() {
 
 function LoginModal({ onSubmit, onCancel }) {
   const [correo, setCorreo] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef(null);
@@ -104,11 +118,11 @@ function LoginModal({ onSubmit, onCancel }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!correo.trim()) return;
+    if (!correo.trim() || !password) return;
     setSubmitting(true);
     setError(null);
     try {
-      await onSubmit(correo.trim());
+      await onSubmit(correo.trim(), password);
     } catch (err) {
       setError(err.message || "No se pudo iniciar sesión");
       setSubmitting(false);
@@ -120,8 +134,8 @@ function LoginModal({ onSubmit, onCancel }) {
       <div className="session-modal">
         <h2 className="session-modal-title">Identifícate</h2>
         <p className="session-modal-desc">
-          Ingresa tu correo institucional. Si un administrador ya te dio de alta, entras con el
-          rol que te asignó — queda registrado en la bitácora de cambios.
+          Ingresa tu correo institucional y tu contraseña. Si un administrador ya te dio de alta,
+          entras con el rol que te asignó — queda registrado en la bitácora de cambios.
         </p>
         <form onSubmit={submit}>
           <input
@@ -134,13 +148,95 @@ function LoginModal({ onSubmit, onCancel }) {
             placeholder="tu.correo@uc.cl"
             disabled={submitting}
           />
+          <input
+            className="session-modal-input"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Contraseña"
+            disabled={submitting}
+          />
           {error && <p className="session-modal-error">{error}</p>}
           <div className="session-modal-actions">
             <button type="button" className="session-modal-cancel" onClick={onCancel} disabled={submitting}>
               Cancelar
             </button>
-            <button type="submit" className="session-modal-submit" disabled={submitting || !correo.trim()}>
+            <button type="submit" className="session-modal-submit" disabled={submitting || !correo.trim() || !password}>
               {submitting ? "Entrando..." : "Continuar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Sin botón cancelar a propósito: la contraseña la asignó un administrador
+// (ver Admin.jsx, "Dar de alta"/"Restablecer"), no es opcional cambiarla.
+function ChangePasswordModal({ onSubmit }) {
+  const [password, setPassword] = useState("");
+  const [confirmar, setConfirmar] = useState("");
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+    if (password !== confirmar) {
+      setError("Las contraseñas no coinciden");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await onSubmit(password);
+    } catch (err) {
+      setError(err.message || "No se pudo cambiar la contraseña");
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="session-modal-backdrop" role="dialog" aria-modal="true" aria-label="Cambia tu contraseña">
+      <div className="session-modal">
+        <h2 className="session-modal-title">Cambia tu contraseña</h2>
+        <p className="session-modal-desc">
+          Tu cuenta tiene una contraseña temporal asignada por un administrador — elige una propia
+          antes de continuar.
+        </p>
+        <form onSubmit={submit}>
+          <input
+            ref={inputRef}
+            className="session-modal-input"
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Nueva contraseña (mínimo 8 caracteres)"
+            disabled={submitting}
+          />
+          <input
+            className="session-modal-input"
+            type="password"
+            autoComplete="new-password"
+            value={confirmar}
+            onChange={(e) => setConfirmar(e.target.value)}
+            placeholder="Repite la contraseña"
+            disabled={submitting}
+          />
+          {error && <p className="session-modal-error">{error}</p>}
+          <div className="session-modal-actions">
+            <button type="submit" className="session-modal-submit" disabled={submitting || !password || !confirmar}>
+              {submitting ? "Guardando..." : "Cambiar contraseña"}
             </button>
           </div>
         </form>

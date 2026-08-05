@@ -2888,6 +2888,46 @@ body {
   box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
 }
 
+.admin-reset-password {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.admin-reset-password .admin-error {
+  flex-basis: 100%;
+}
+
+.admin-reset-password-input {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: #fff;
+  width: 9rem;
+}
+
+.admin-reset-password-input:focus-visible {
+  outline: none;
+  border-color: var(--uc-azul);
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
+.admin-reset-password-btn {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.admin-reset-password-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(1, 118, 222, 0.35);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .session-modal-input,
   .session-modal-cancel,
@@ -2896,7 +2936,9 @@ body {
   .hito-edit-btn,
   .admin-role-select,
   .admin-nombre-input,
-  .admin-activo-toggle {
+  .admin-activo-toggle,
+  .admin-reset-password-input,
+  .admin-reset-password-btn {
     transition: none;
   }
 }

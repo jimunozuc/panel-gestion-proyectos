@@ -100,7 +100,8 @@ Objetivo (6 Ejes del Plan, solo "Inteligencia digital" habilitado)
 
 En `/app/` y `/dev/`, el Listado de Hitos permite agregar, editar y borrar
 hitos/tareas — pide identificarse la primera vez (modal "¿Quién eres?"),
-sin contraseña todavía (login institucional real es la Versión 3, pendiente).
+con correo y contraseña (solución interina hasta integrar el login
+institucional real de la Versión 3.1, ver `## Roadmap`).
 El rol **lector** es de solo lectura de verdad: no ve los botones de
 agregar/editar/eliminar, y el backend rechaza esas escrituras aunque se
 llamen directo a la API. En `/` (consulta) esas mismas vistas son de solo
@@ -119,9 +120,9 @@ solo una parte esté activa — no se inventan datos para los que no los tienen.
     iniciativa o proyecto (necesita datos reales, no inventar contenido).
   - `src/layouts/PanelLayout.jsx` — el riel fijo + breadcrumb, envuelve todas
     las vistas vía `<Outlet />`.
-  - `src/utils/SessionContext.jsx` — sesión (login "¿quién eres?", sin
-    contraseña), expone `ensureSession()` para pedir identificación recién
-    al primer intento de editar.
+  - `src/utils/SessionContext.jsx` — sesión (login "¿quién eres?", correo +
+    contraseña interina), expone `ensureSession()` para pedir identificación
+    recién al primer intento de editar.
   - `src/pages/Contexto.jsx`, `src/pages/EjeDetail.jsx`,
     `src/pages/ProyectoFicha.jsx` — nivel 0 (contexto), nivel 1→2
     (objetivo → iniciativas) y nivel 3 (ficha del proyecto con pestañas).
@@ -152,13 +153,14 @@ solo una parte esté activa — no se inventan datos para los que no los tienen.
     de Render no comparten cookies entre sí), `server.js` le delega esta
     lógica por HTTP vía `src/sesionClient.js` y sigue siendo quien
     emite/lee la cookie de sesión en su propio dominio.
-  - `src/session.js`, `src/routes/session.js` — cookie de sesión, sin
-    contraseña, y "ver como" (cambiar de rol temporalmente en la propia
-    sesión para probar restricciones — solo cuentas en `VER_COMO_CORREOS`,
-    auditado). Login por correo, aprovisionado de antemano por un
-    administrador desde `/admin` (correo + rol) — `BOOTSTRAP_ADMIN_EMAILS`
-    es la excepción para arrancar el primer administrador de un entorno
-    nuevo (lógica real en `sesionServer.js`).
+  - `src/session.js`, `src/routes/session.js` — cookie de sesión, con
+    contraseña (interina, ver `src/passwordHash.js`), y "ver como" (cambiar
+    de rol temporalmente en la propia sesión para probar restricciones —
+    solo cuentas en `VER_COMO_CORREOS`, auditado). Login por correo,
+    aprovisionado de antemano por un administrador desde `/admin` (correo +
+    rol + contraseña inicial) — `BOOTSTRAP_ADMIN_EMAILS` es la excepción
+    para arrancar el primer administrador de un entorno nuevo (que fija su
+    propia contraseña en ese primer login; lógica real en `sesionServer.js`).
   - `src/adminServer.js` — servicio Render aparte, solo lectura, para la
     bitácora (`audit_log`), desplegado como
     `panel-gestion-proyectos-{dev,prd}-admin` — tercer corte de
@@ -234,14 +236,15 @@ corre lo mismo contra un Postgres descartable en cada PR.
   institucionales UC, tipografía Roboto e íconos Material Symbols Rounded.
 - Panel de Gestión: 7 vistas con datos reales (KPI, Carta Gantt, Listado de
   Hitos, Distribución por Responsable, Roadmap, Mapa de Color, Glosario).
-- Persistencia en Postgres, sesión sin contraseña, roles
-  (administrador/editor/lector) y bitácora de cambios: **hecho**, en `/app/`
-  y `/dev/` — `/` sigue siendo solo lectura desde Excel a propósito.
+- Persistencia en Postgres, sesión con contraseña (interina, hasta integrar
+  CAS/SSO), roles (administrador/editor/lector) y bitácora de cambios:
+  **hecho**, en `/app/` y `/dev/` — `/` sigue siendo solo lectura desde
+  Excel a propósito.
 - Alta/baja de hitos y tareas, edición de responsable, solicitud de nuevo
   proyecto (formulario en Administración, el alta real en `plan.js` la sigue
   haciendo una persona): **hecho**.
-- Login institucional (CAS/Entra ID de la UC, reemplazando el "¿quién eres?"
-  actual): **pendiente** — falta la URL del proveedor real.
+- Login institucional (CAS/Entra ID de la UC, reemplazando la contraseña
+  interina actual): **pendiente** — falta la URL del proveedor real.
 - App Releases: página con los avances/versiones de la app (ver
   `frontend/src/data/releases.js` para agregar entradas nuevas).
 
@@ -259,6 +262,25 @@ sin contraseña, roles, bitácora de cambios, y alta/baja de hitos-tareas
 desde la propia interfaz. Desplegado como entorno productivo **separado**
 del panel de consulta (`/app/`), sin reemplazarlo — ver `## Los tres
 entornos` arriba.
+
+### Versión 3.0.1 — Contraseña interina (mientras no hay CAS/SSO) ✅ hecho
+El login por correo (Versión 3.0) no verificaba que quien lo escribía fuera
+su dueño — cualquiera que conociera un correo ya aprovisionado podía entrar
+como esa persona, administradores incluidos. Se agrega contraseña
+(`password_hash` en `users`, `src/passwordHash.js` con scrypt, freno de
+fuerza bruta en memoria en `sesionServer.js`) como paso intermedio hasta
+integrar el CAS/SSO real de la Versión 3.1: un administrador la asigna al
+dar de alta o restablecer una cuenta desde `/admin`; las cuentas que ya
+existían antes de esta versión quedan sin poder loguearse hasta que se les
+asigne una (ver `backend/set-initial-passwords.mjs` para asignarles la
+misma de una sola vez en vez de ir cuenta por cuenta).
+
+Toda contraseña asignada por un administrador (alta o restablecimiento, no
+así la que cada quien elige al arrancar por `BOOTSTRAP_ADMIN_EMAILS`) marca
+`must_change_password` — en su próximo login, la persona ve un modal de
+"Cambia tu contraseña" sin opción de cancelar (`ChangePasswordModal` en
+`SessionContext.jsx`) hasta que fija una propia vía
+`POST /internal/change-password`.
 
 ### Versión 3.1 — Login institucional (pendiente)
 Reemplazar el modal "¿Quién eres?" por el CAS/Entra ID real de la UC —
