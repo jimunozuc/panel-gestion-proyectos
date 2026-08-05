@@ -42,6 +42,11 @@ app.get("/api/health", (req, res) => {
 });
 
 async function start() {
+  if (process.env.NODE_ENV === "production" && !process.env.REFRESH_SECRET) {
+    console.error("REFRESH_SECRET es obligatorio en producción — abortando arranque.");
+    process.exit(1);
+  }
+
   try {
     await runMigrations();
     console.log("Migraciones de Postgres aplicadas.");

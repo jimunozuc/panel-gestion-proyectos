@@ -207,6 +207,11 @@ app.post("/internal/login", async (req, res) => {
 });
 
 async function start() {
+  if (process.env.NODE_ENV === "production" && !process.env.SESION_SECRET) {
+    console.error("SESION_SECRET es obligatorio en producción — abortando arranque.");
+    process.exit(1);
+  }
+
   try {
     await runMigrations();
     console.log("Migraciones de Postgres aplicadas.");

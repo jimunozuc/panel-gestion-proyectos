@@ -305,6 +305,41 @@ entorno):
   agregarles un salto de red aparte no ganaba nada. Lo único que se mueve
   es la lectura (`GET /api/audit-log`, usada por Administración).
 
+### Secretos: cuál va en cada servicio
+
+Los 4 servicios comparten el mismo `backend/` y el mismo `db/pool.js`, pero
+cada secreto tiene un solo par emisor/verificador — **ningún servicio
+necesita los 4**, y comparar valores entre pares que no se hablan entre sí
+no tiene efecto (ver `backend/.env.example` para el detalle línea a línea).
+
+| Secreto | `server.js` | `ingestaServer.js` | `sesionServer.js` | `adminServer.js` | `watch-and-push.mjs` |
+|---|---|---|---|---|---|
+| `COOKIE_SECRET` | ✅ firma la cookie | — | — | — | — |
+| `REFRESH_SECRET` | — | ✅ verifica | — | — | ✅ envía |
+| `SESION_SECRET` | ✅ envía (`sesionClient.js`) | — | ✅ verifica | — | — |
+| `ADMIN_SECRET` | ✅ envía (`adminClient.js`) | — | — | ✅ verifica | — |
+
+**Dónde deben coincidir (mismo valor) y dónde no:**
+
+- `SESION_SECRET` debe ser **idéntico** entre `server.js` y `sesionServer.js`
+  **del mismo entorno** (los dos de `/app/`, o los dos de `/dev/`) — es el
+  par que se habla entre sí. Igual lógica para `ADMIN_SECRET` entre
+  `server.js` y `adminServer.js`, y para `REFRESH_SECRET` entre
+  `ingestaServer.js` y la config del watcher que le pushea a ESE entorno.
+- Entre `/app/` y `/dev/`, lo recomendable es que los 4 secretos sean
+  **distintos** por entorno (aislar el radio de un secreto filtrado) —
+  aunque nada técnico se rompe si coinciden, ya que cada par solo valida
+  contra su propio entorno.
+- `COOKIE_SECRET` es el único que no es un par emisor/verificador entre dos
+  servicios — lo usa solo `server.js` para firmar su propia cookie. Si
+  algún día `server.js` corre en más de una instancia, esas réplicas sí
+  necesitan compartir el mismo `COOKIE_SECRET` entre sí (para que una
+  cookie firmada por una instancia valide en otra).
+- Ninguno de los 4 debe coincidir con otro de la lista (son namespaces de
+  autenticación completamente independientes — que `SESION_SECRET` y
+  `ADMIN_SECRET` compartan valor, por ejemplo, no da ninguna ventaja y sólo
+  agranda el radio de un posible filtrado).
+
 Sin nuevo candidato identificado por ahora. No se fragmenta sin necesidad concreta: dividir prematuramente, sin que un
 límite de responsabilidad real lo justifique, agrega complejidad operativa
 (más despliegues, más bases o colas, más latencia entre servicios) sin

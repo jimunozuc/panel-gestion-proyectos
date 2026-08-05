@@ -24,7 +24,11 @@ app.use(
     credentials: true,
   })
 );
-app.use(cookieParser(process.env.COOKIE_SECRET || "dev-secret-cambiar-en-produccion"));
+// El fallback solo es alcanzable en desarrollo local: start() aborta el
+// arranque en producción si COOKIE_SECRET no está seteada, así que este
+// string nunca llega a firmar una cookie que un usuario real vea.
+const COOKIE_SECRET_DEV_ONLY = "dev-secret-solo-para-desarrollo-local";
+app.use(cookieParser(process.env.COOKIE_SECRET || COOKIE_SECRET_DEV_ONLY));
 app.use(express.json());
 app.use(attachUser);
 
@@ -66,6 +70,11 @@ app.get("/api/iniciativas/:num", async (req, res) => {
 });
 
 async function start() {
+  if (process.env.NODE_ENV === "production" && !process.env.COOKIE_SECRET) {
+    console.error("COOKIE_SECRET es obligatorio en producción — abortando arranque.");
+    process.exit(1);
+  }
+
   try {
     await runMigrations();
     console.log("Migraciones de Postgres aplicadas.");

@@ -51,6 +51,11 @@ app.get("/internal/audit-log", async (req, res) => {
 });
 
 async function start() {
+  if (process.env.NODE_ENV === "production" && !process.env.ADMIN_SECRET) {
+    console.error("ADMIN_SECRET es obligatorio en producción — abortando arranque.");
+    process.exit(1);
+  }
+
   try {
     await runMigrations();
     console.log("Migraciones de Postgres aplicadas.");
